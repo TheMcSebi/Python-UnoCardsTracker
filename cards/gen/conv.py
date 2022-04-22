@@ -28,4 +28,4 @@ for iy in range(0, len(lookup_y)):
 
         myimg = img[y1:y2, x1:x2]
 
-        cv2.imwrite(f"img/{filename}.png", myimg)
+        cv2.imwrite(f"../{filename}.png", myimg)

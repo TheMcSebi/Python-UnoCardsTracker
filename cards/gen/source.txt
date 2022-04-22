@@ -1,3 +1,5 @@
 https://commons.wikimedia.org/wiki/File:UNO_cards_deck.svg
 https://upload.wikimedia.org/wikipedia/commons/9/95/UNO_cards_deck.svg
 converted to png using some online tool
+
+logo on the card back taken from wikipedia: https://en.wikipedia.org/wiki/Uno_(card_game)

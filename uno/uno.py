@@ -3,7 +3,8 @@ import json, os, datetime
 from random import seed
 from time import time
 from os.path import join, dirname, realpath
-
+import ctypes
+from tkinter.messagebox import NO
 from pygame import Surface, quit as pygame_quit, init as pygame_init
 from pygame.display import set_mode, set_caption, get_surface, update as display_update
 from pygame.event import Event, get as get_events
@@ -14,6 +15,8 @@ from pygame.time import Clock, get_ticks
 from pygame.mouse import get_pos as get_mouse_pos
 from pygame.key import get_mods as get_key_mods
 from pygame.locals import *
+
+ctypes.windll.user32.SetProcessDPIAware()
 
 pygame_init()
 mixer_init()
@@ -29,9 +32,13 @@ class Uno:
     """
     Load Screen
     """
-    def __init__(self):
+    def __init__(self, fullscreen : bool = False) -> None:
         seed(int(time()))
-        self.window = set_mode((0, 0), FULLSCREEN)
+        self.true_res = Uno._os_get_screen_resolution()
+        flags = 0
+        if fullscreen:
+            flags = FULLSCREEN
+        self.window = set_mode(self.true_res, flags)
         set_caption("Uno Level Tracker")
 
         self.appfolder = Uno.get_app_folder()
@@ -103,6 +110,21 @@ class Uno:
             self.loop(events)
             screen.loop(events)
             display_update()
+    
+    def undo(self) -> None:
+        latest_action = 0
+        latest_action_player = None
+        for p in self.players:
+            action_time = p["history"][-1][1]
+            if action_time > latest_action:
+                latest_action = action_time
+                latest_action_player = p
+        if latest_action_player:
+            action = latest_action_player["history"][-2]
+            latest_action_player["score"] = action[0]
+            latest_action_player["history"].pop()
+        else:
+            print("nothing to undo")
     
     def setstate(self, num : int) -> None:
         self.state = num
@@ -200,7 +222,7 @@ class Uno:
             p["history"].append((p["score"], self.get_game_time()))
             self.save()
         
-        self.players_by_score = sorted(self.players, key = lambda x: x["score"], reverse = True)
+        #self.players_by_score = sorted(self.players, key = lambda x: x["score"], reverse = True)
         
     def blit_centered(self, src : Surface, dest : tuple, target : Surface = None) -> None:
         (x, y) = dest
@@ -221,7 +243,8 @@ class Uno:
 
     def _screen_resolution_changed(self) -> None:
         global FONT_SM, FONT_MD, FONT_LG, FONT_XL
-
+        self.true_res = Uno._os_get_screen_resolution()
+        print(f"screen resolution is {self.true_res}")
         self.w, self.h = get_surface().get_size()
 
         smaller_dim = min(self.w, self.h)
@@ -231,6 +254,10 @@ class Uno:
         FONT_XL = SysFont('calibri', smaller_dim//10)
         
         self.bg = Surface((self.w, self.h))
+    
+    @staticmethod
+    def _os_get_screen_resolution() -> tuple:
+        return (ctypes.windll.user32.GetSystemMetrics(0), ctypes.windll.user32.GetSystemMetrics(1) - 100)
         
 
 
