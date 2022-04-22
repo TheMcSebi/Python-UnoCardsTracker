@@ -55,7 +55,7 @@ class Uno:
         self.players = []
         self.pcount = 0
         self.ticks_start = 0
-        self.player_colors = [(255, 255, 255), (255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0), (255, 0, 255), (0, 255, 255)]
+        self.player_colors = [(255, 255, 255), (255, 0, 0), (0, 255, 0), (0x3f, 0xab, 0xda), (0x77, 0x00, 0xff), (255, 0, 255), (0, 255, 255)]
         
         self.w = 0
         self.h = 0
@@ -98,12 +98,13 @@ class Uno:
                     if not screen.keydown(e.key, kmods):
                         self.keydown(e.key, kmods)
                 elif e.type in [MOUSEBUTTONDOWN, MOUSEBUTTONUP, MOUSEMOTION]:
-                    if not screen.mouse_event(e):
-                        self.mouse_event(e)
+                    if screen.mouse_event(e):
+                        continue
+                    
                     if e.type == MOUSEBUTTONUP:
                         pos = get_mouse_pos()
-                        if not screen.click(pos, e.button):
-                            self.click(pos, e.button)
+                        if screen.click(pos, e.button):
+                            continue
                 elif e.type == VIDEORESIZE:
                     self._screen_resolution_changed()
             
@@ -112,17 +113,44 @@ class Uno:
             display_update()
     
     def undo(self) -> None:
-        latest_action = 0
-        latest_action_player = None
+        last_value = 0
+        last_time = 0
+        last_index = 0
+        last_player = None
+        last_action = None
         for p in self.players:
-            action_time = p["history"][-1][1]
-            if action_time > latest_action:
-                latest_action = action_time
-                latest_action_player = p
-        if latest_action_player:
-            action = latest_action_player["history"][-2]
-            latest_action_player["score"] = action[0]
-            latest_action_player["history"].pop()
+            if len(p["history"]) == 0:
+                continue
+            htime = p["history"][-1]["time"]
+            if htime > last_time:
+                last_time = htime
+                last_player = p
+                last_action = p["history"][-1]["action"]
+                #last_value = p["history"][-1]["value"]
+        if last_player:
+            sum_actions = 0
+            tmp = 0
+            for i,h in enumerate(last_player["history"]):
+                if h["action"] == last_action:
+                    last_value = tmp
+                    sum_actions += 1
+                    tmp = h["value"]
+                    last_index = i
+            
+            if sum_actions > 1:
+                #action = latest_action_player["history"][-2]["action"]
+                #value = latest_action_player["history"][-2]["value"]
+                if last_action == "flash":
+                    last_player["flashes"] = last_value
+                elif last_action == "draw":
+                    last_player["cards"] = last_value
+            elif sum_actions == 1:
+                if last_action == "draw":
+                    last_player["cards"] = 0
+                elif last_action == "flash":
+                    last_player["flashes"] = 0
+            last_player["history"].pop(last_index)
+            #print(last_player)
         else:
             print("nothing to undo")
     
@@ -146,12 +174,6 @@ class Uno:
     def keydown(self, k : int, kmods : int) -> None:
         if k == K_ESCAPE or k == K_q:
             self.exit()
-            
-    def mouse_event(self, event : Event) -> None:
-        pass
-    
-    def click(self, pos : tuple, btn = int) -> None:
-        pass
     
     #########################################################################################
 
@@ -164,7 +186,8 @@ class Uno:
             self.players.append({
                 "num": i,
                 "name": p,
-                "score": 0,
+                "cards": 0,
+                "flashes": 0,
                 "history": [],
             })
         self.pcount = len(self.players)
@@ -188,7 +211,11 @@ class Uno:
                     game = json.loads(f.read())
                     players = []
                     for p in game["players"]:
-                        players.append(f"{p['name']} ({p['score']})")
+                        if not "cards" in p:
+                            players.append(f"{p['name']} ({p['score']} cards)")
+
+                        else:
+                            players.append(f"{p['name']} ({p['cards']} cards/{p['flashes']} flashes)")
                     savegames.append({"filename": filename, "players": players})
             except Exception as e:
                 print(f"Error loading file '{filename}': {e}")
@@ -199,6 +226,20 @@ class Uno:
         self.save_file_name = filename
         with open(f"saves/{filename}", "r") as f:
             game = json.loads(f.read())
+            if not "save_version" in game:
+                # convert save version from 0 to 1
+                game["save_version"] = 1
+                for ip, p in enumerate(game["players"]):
+                    cards = game["players"][ip]["score"]
+                    game["players"][ip].pop("score", None)
+                    game["players"][ip]["cards"] = cards
+                    game["players"][ip]["flashes"] = 0
+                    for ih, h in enumerate(p["history"]):
+                        game["players"][ip]["history"][ih] = {"action": "draw", "time": h[1], "value": h[0]}
+            elif game["save_version"] == 1:
+                # convert to game version 2 if necessary
+                pass
+
             self.players = game["players"]
             self.ticks_start = get_ticks() - game["current_tick"]
             self.pcount = len(self.players)
@@ -209,7 +250,7 @@ class Uno:
         if self.save_file_name is None:
             return
         
-        game = {"current_tick": self.get_game_time(), "players": self.players}
+        game = {"current_tick": self.get_game_time(), "players": self.players, "save_version": 1}
         
         if not os.path.isdir("saves"):
             os.mkdir("saves")
@@ -217,26 +258,34 @@ class Uno:
         with open(f"saves/{self.save_file_name}", "w") as f:
             f.write(json.dumps(game))
     
-    def playerdata_changed(self, p : dict) -> None:
-        if not p is None:
-            p["history"].append((p["score"], self.get_game_time()))
-            self.save()
-        
-        #self.players_by_score = sorted(self.players, key = lambda x: x["score"], reverse = True)
-        
+    def playerdata_changed(self, p : dict, action : str = "draw") -> None:
+        """
+        Appends a history entry and saves the game
+        """
+        if p is None:
+            return
+
+        if action == "draw":
+            value = p["cards"]
+        elif action == "flash":
+            value = p["flashes"]
+
+        p["history"].append({"action": action, "value": value, "time": self.get_game_time()})
+        self.save()
+
     def blit_centered(self, src : Surface, dest : tuple, target : Surface = None) -> None:
         (x, y) = dest
         if target is None:
             target = self.window
         target.blit(src, (x - src.get_width() / 2, y - src.get_height() / 2))
-    
+
     def get_game_time(self) -> int:
         return get_ticks() - self.ticks_start
-    
+
     #########################################################################################
 
     def exit(self) -> None:
-        self.save()
+        #self.save()
         self.run = False
         pygame_quit()
         raise SystemExit()
@@ -252,9 +301,9 @@ class Uno:
         FONT_MD = SysFont('calibri', smaller_dim//30)
         FONT_LG = SysFont('calibri', smaller_dim//20)
         FONT_XL = SysFont('calibri', smaller_dim//10)
-        
+
         self.bg = Surface((self.w, self.h))
-    
+
     @staticmethod
     def _os_get_screen_resolution() -> tuple:
         return (ctypes.windll.user32.GetSystemMetrics(0), ctypes.windll.user32.GetSystemMetrics(1) - 100)

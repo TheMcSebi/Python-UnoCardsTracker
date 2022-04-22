@@ -47,9 +47,6 @@ class Menu:
             Button(self.g, "Load", (self.g.w//2, self.g.h//2), (self.bw, self.bh), self.button_handler),
             Button(self.g, "Quit", (self.g.w//2, self.g.h//2 + self.g.h//4), (self.bw, self.bh), self.button_handler),
         ]
-        #self.buttons.append(Button(self.g, "Start", (self.g.w//2, self.g.h//2 - self.g.h//4), (self.bw, self.bh), self.button_handler))
-        #self.buttons.append(Button(self.g, "Load", (self.g.w//2, self.g.h//2), (self.bw, self.bh), self.button_handler))
-        #self.buttons.append(Button(self.g, "Quit", (self.g.w//2, self.g.h//2 + self.g.h//4), (self.bw, self.bh), self.button_handler))
         
         self.print_event = "showevent" in sys.argv
         self.text_input = TextInput(

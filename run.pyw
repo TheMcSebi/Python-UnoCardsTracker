@@ -8,5 +8,4 @@ if __name__ == "__main__":
     fullscreen = False
     if args.fullscreen:
         fullscreen = True
-    fullscreen = True
     Uno(fullscreen).main_loop()
