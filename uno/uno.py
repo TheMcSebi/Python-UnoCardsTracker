@@ -126,7 +126,6 @@ class Uno:
                 last_time = htime
                 last_player = p
                 last_action = p["history"][-1]["action"]
-                #last_value = p["history"][-1]["value"]
         if last_player:
             sum_actions = 0
             tmp = 0
@@ -138,8 +137,6 @@ class Uno:
                     last_index = i
             
             if sum_actions > 1:
-                #action = latest_action_player["history"][-2]["action"]
-                #value = latest_action_player["history"][-2]["value"]
                 if last_action == "flash":
                     last_player["flashes"] = last_value
                 elif last_action == "draw":
@@ -150,7 +147,6 @@ class Uno:
                 elif last_action == "flash":
                     last_player["flashes"] = 0
             last_player["history"].pop(last_index)
-            #print(last_player)
         else:
             print("nothing to undo")
     

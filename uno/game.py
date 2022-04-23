@@ -30,7 +30,7 @@ class Game:
         self.card_padding = 30
         self.stack_card_distance = 10
         self.aa = True
-        self.dragging = 0
+        self.dragging_stack = 0
     
     #########################################################################################
 
@@ -149,40 +149,24 @@ class Game:
         
         if t == MOUSEBUTTONDOWN:
             b = event.button
-            #if self.dragging > 0:
-            #    self.dragging = 0
-            #    #self.prev_stack_pos = self.stack_pos
-            #    self.stack_pos = self.stack_base_pos
-            #    return True
-            #el
             if self.g.check_collision_center(self.stack_pos, (self.cards_gen.w, self.cards_gen.h), p):
-                self.dragging = b
-                #self.stack.pop()
+                self.dragging_stack = b
                 return True
-            if self.dragging:
+            if self.dragging_stack:
                 return True
         elif t == MOUSEBUTTONUP:
             b = event.button
-            # always do button handler first
             
-            
-            if self.dragging == b:
-                self.dragging = 0
+            if self.dragging_stack == b:
+                self.dragging_stack = 0
 
                 player_clicked = self.get_player_clicked(p)
                 if not player_clicked is None:
-                    #self.prev_stack_pos = self.stack_pos
                     self.stack_pos = self.stack_base_pos
-                    #print(player_clicked)
                     self.card_stacks[player_clicked["num"] - 1].add_cards(len(self.stack))
                     self.player_action(player_clicked, "draw", len(self.stack))
                     self.stack = []
-                print("added cards")
                 return True
-            #elif self.g.check_collision_center(self.prev_stack_pos, (self.cards_gen.w, self.cards_gen.h), p):
-            #    # prevent event propagation if stack is in the way TODO: check if it works
-            #    print("hit stack on exiting mouse click event")
-            #    return True
             else:
                 # check buttons
                 if b == BUTTON_LEFT:
@@ -193,11 +177,10 @@ class Game:
                 player_clicked = self.get_player_clicked(p)
                 if not player_clicked is None:
                     self.player_action(player_clicked, "flash")
-                    print("flashed")
         elif t == MOUSEMOTION:
             r = event.rel
             b = event.buttons
-            if self.dragging > 0 and b[self.dragging-1] == 1:
+            if self.dragging_stack > 0 and b[self.dragging_stack-1] == 1:
                 self.stack_pos = (self.stack_pos[0]+r[0], self.stack_pos[1]+r[1])
                 return True
         return False

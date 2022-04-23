@@ -48,25 +48,23 @@ class Load:
         return False
     
     def mouse_event(self, event : Event) -> bool:
-        print(event, self.dragging)
-        #if event.touch:
-        #    print(touch)
-        if event.type == MOUSEBUTTONDOWN:
-            self.maybe_dragging = True
-            return True
-        if event.type == MOUSEMOTION:
-            if self.maybe_dragging:
-                self.dragging = True
-                self.maybe_dragging = False
-            if self.dragging:
-                for b in self.buttons:
-                    if not b.name == "Back":
-                        b.pos = (b.pos[0], b.pos[1]+event.rel[1])
-        if event.type == MOUSEBUTTONUP:
-            self.maybe_dragging = False
-            if self.dragging:
-                self.dragging = False
+        if event.touch:
+            if event.type == MOUSEBUTTONDOWN:
+                self.maybe_dragging = True
                 return True
+            if event.type == MOUSEMOTION:
+                if self.maybe_dragging:
+                    self.dragging = True
+                    self.maybe_dragging = False
+                if self.dragging:
+                    for b in self.buttons:
+                        if not b.name == "Back":
+                            b.pos = (b.pos[0], b.pos[1]+event.rel[1])
+            if event.type == MOUSEBUTTONUP:
+                self.maybe_dragging = False
+                if self.dragging:
+                    self.dragging = False
+                    return True
         
         return False
     

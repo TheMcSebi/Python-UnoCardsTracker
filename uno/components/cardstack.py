@@ -2,8 +2,6 @@ from __future__ import annotations
 from pygame.event import Event
 from pygame import Surface
 
-# TODO: move all relevant code from game.py to here
-
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from ..uno import Uno
@@ -31,5 +29,10 @@ class CardStack:
     
     def add_cards(self, num : int = 1) -> None:
         for i in range(0, num):
-            self.g.blit_centered(self.card_back_img, (self.imdim[0]//2,self.imdim[1] - 100 - self.stack_size*self.v_dist), self.stack_img)
+            if self.stack_size < 140:
+                self.g.blit_centered(self.card_back_img, (self.imdim[0]//2, self.imdim[1] - 100 - self.stack_size*self.v_dist), self.stack_img)
+            elif self.stack_size < 260:
+                self.g.blit_centered(self.card_back_img, (self.imdim[0]//2 - 40, self.imdim[1] - 70 - (self.stack_size-140)*self.v_dist), self.stack_img)
+            else:
+                self.g.blit_centered(self.card_back_img, (self.imdim[0]//2 + 40, self.imdim[1] - 70 - (self.stack_size-260)*self.v_dist), self.stack_img)
             self.stack_size += 1
