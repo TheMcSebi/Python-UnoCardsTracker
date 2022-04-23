@@ -65,7 +65,7 @@ class Game:
 
         self.card_stacks = []
         for p in self.g.players:
-            cstack = CardStack(self.g, self.cards_gen.raster_playing_card("back", 30 - (60/(self.g.pcount - 1)*(p["num"]-1))), (self._get_player_position(p["num"]), self.g.h-self.card_sec_height - 650))
+            cstack = CardStack(self.g, self.cards_gen.raster_playing_card("back", 30 - (60/(self.g.pcount - 1)*(p["num"]-1))), (self._get_player_position(p["num"]), self.g.h-self.card_sec_height - 700))
             cstack.add_cards(p["cards"])
             self.card_stacks.append(cstack)
 
@@ -108,10 +108,10 @@ class Game:
             self.g.blit_centered(FONT_LG.render(f"{p['name']}", self.aa, self.g.player_colors[p["num"]]), (tpos, self.g.h-self.card_sec_height-120))
             self.g.blit_centered(FONT_LG.render(f"{p['cards']} Karten gezogen", self.aa, self.g.player_colors[p["num"]]), (tpos, self.g.h-self.card_sec_height-80))
             self.g.blit_centered(FONT_LG.render(f"{p['flashes']} mal geblitzt", self.aa, self.g.player_colors[p["num"]]), (tpos, self.g.h-self.card_sec_height-40))
-            #self.g.blit_centered(FONT_XL.render(f"", self.aa, color), (tpos, self.g.h//2))
         
-        # hline
+        # hlines
         line(self.window, WHITE, (0, self.g.h - self.card_sec_height), (self.g.w, self.g.h - self.card_sec_height), 5)
+        line(self.window, WHITE, (0, self.g.h - self.card_sec_height - 150), (self.g.w, self.g.h - self.card_sec_height - 150), 5)
 
         for i,c in enumerate(self.stack):
             self.g.blit_centered(c["img"], (self.stack_pos[0] + c["offset"][0], self.stack_pos[1] + c["offset"][1] - i*self.stack_card_distance))
@@ -122,7 +122,8 @@ class Game:
         
         # clear button image
         self.g.blit_centered(self.clear_img, self.clear_img_pos)
-        self.g.blit_centered(FONT_XL.render(f"({len(self.stack)})", self.aa, WHITE), (self.clear_img_pos[0] - (self.g.w - self.clear_img_pos[0] - 20), self.clear_img_pos[1]))
+        # current stack size
+        self.g.blit_centered(FONT_XL.render(f"({len(self.stack)})", self.aa, WHITE), (self.clear_img_pos[0] - (self.g.w - self.clear_img_pos[0] + 20), self.clear_img_pos[1]))
 
         # menu buttons
         for b in self.buttons:
