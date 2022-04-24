@@ -65,16 +65,22 @@ class Game:
 
         self.card_stacks = []
         for p in self.g.players:
-            cstack = CardStack(self.g, self.cards_gen.raster_playing_card("back", 30 - (60/(self.g.pcount - 1)*(p["num"]-1))), (self._get_player_position(p["num"]), self.g.h-self.card_sec_height - 700))
+            cstack = CardStack(
+                g = self.g, 
+                img = self.cards_gen.raster_playing_card("back", 30 - (60/(self.g.pcount - 1)*(p["num"]-1))), 
+                pos = (self._get_player_position(p["num"]), self.card_sec_height//2), 
+                size = (self.segwidth, self.card_sec_height)
+            )
             cstack.add_cards(p["cards"])
             self.card_stacks.append(cstack)
-
     
     def button_handler(self, name : str) -> None:
         if name == "Back":
             self.g.setstate(0)
+            
         elif name == "Stats":
             self.g.setstate(3)
+
         elif name == "Undo":
             self.g.undo()
             # stacks need to be redrawn
