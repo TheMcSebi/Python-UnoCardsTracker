@@ -38,6 +38,7 @@ class CardStack:
             elif self.stack_size < 260:
                 self.g.blit_centered(self.card_back_img, (self.size[0]//2 - 40, self.size[1] - 70 - (self.stack_size-140)*self.v_dist), self.stack_img)
             elif self.stack_size < 380:
+                self.g.blit_centered(self.card_back_img, (self.size[0]//2 + 40, self.size[1] - 70 - (self.stack_size-260)*self.v_dist), self.stack_img)
             else:
                 self.g.blit_centered(self.card_back_img, (self.size[0]//2 + 40, self.size[1] - 70 - (self.stack_size-260)*self.v_dist), self.stack_img)
             self.stack_size += 1
