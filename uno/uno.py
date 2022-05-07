@@ -11,6 +11,8 @@ from pygame.event import Event, get as get_events
 from pygame.font import SysFont, init as font_init
 from pygame.mixer import init as mixer_init, Sound
 from pygame.time import Clock, get_ticks
+from pygame.image import load as load_image
+from pygame.transform import scale
 
 from pygame.mouse import get_pos as get_mouse_pos
 from pygame.key import get_mods as get_key_mods
@@ -27,6 +29,7 @@ from .game import Game
 from .load import Load
 from .stats import Stats
 from .constants import *
+
 
 class Uno:
     """
@@ -158,6 +161,14 @@ class Uno:
             self.state = len(self.screens) - 1
         self.screens[self.state].setup()
     
+    def load_asset_image(self, imgname : str, rescale : int = None) -> Surface:
+        img = load_image(join(self.assets_dir, imgname)).convert_alpha()
+        if not rescale is None:
+            imsize = img.get_size()
+            print(imsize)
+            img = scale(img, (int(imsize[0]*rescale), int(imsize[1]*rescale)))
+        return img
+    
     def check_collision_center(self, center_pos : tuple, area_size : tuple, touch_pos : tuple) -> bool:
         return (center_pos[0] - area_size[0] / 2 <= touch_pos[0] <= center_pos[0] + area_size[0] / 2) and (center_pos[1] - area_size[1] / 2 <= touch_pos[1] <= center_pos[1] + area_size[1] / 2)
 
@@ -265,15 +276,25 @@ class Uno:
             value = p["cards"]
         elif action == "flash":
             value = p["flashes"]
+        elif value == "win":
+            value = p["wins"]
+        else:
+            return
 
         p["history"].append({"action": action, "value": value, "time": self.get_game_time()})
         self.save()
-
-    def blit_centered(self, src : Surface, dest : tuple, target : Surface = None) -> None:
+    
+    def blit_aligned(self, src : Surface, dest : tuple, target : Surface = None, align : tuple = (2, 2)) -> None:
         (x, y) = dest
         if target is None:
             target = self.window
-        target.blit(src, (x - src.get_width() / 2, y - src.get_height() / 2))
+        
+        if not align is None:
+            if align[0] != 0:
+                x -= src.get_width() // align[0]
+            if align[1] != 0:
+                y -= src.get_height() // align[1]
+        target.blit(src, (x, y))
 
     def get_game_time(self) -> int:
         return get_ticks() - self.ticks_start

@@ -20,7 +20,7 @@ class Cards:
         self.set_colors = ["red", "yellow", "green", "blue"]
         self.special_cards = ["wild", "wildplus4"]
 
-        self.drawing_cards = ["wildplus4", "red_8", "red_draw2", "red_1"]
+        self.drawing_cards = ["wildplus4", "red_8", "red_draw2"]
         #for c in self.set_colors:
         #    self.drawing_cards.append(f"{c}_draw2")
 

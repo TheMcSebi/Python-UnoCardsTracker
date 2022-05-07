@@ -83,10 +83,10 @@ class Stats:
             line(self.img, WHITE, (xpos, 0), (xpos, self.h-scoremult), self.stroke_width//2)
             if i == 0: # move first number a little to the right
                 xpos += 20
-            self.g.blit_centered(FONT_MD.render(str(i*minute_mark_interval), True, WHITE), (xpos, self.h-scoremult+20), self.img)
+            self.g.blit_aligned(FONT_MD.render(str(i*minute_mark_interval), True, WHITE), (xpos, self.h-scoremult+20), self.img)
         # move last number a little to the left
         line(self.img, WHITE, (self.w-self.stroke_width//2, 0), (self.w-self.stroke_width//2, self.h-scoremult), self.stroke_width//2)
-        self.g.blit_centered(FONT_MD.render(str(round(last_timestamp/1000/60, 1)), True, WHITE), (self.w-20, self.h-scoremult+20), self.img)
+        self.g.blit_aligned(FONT_MD.render(str(round(last_timestamp/1000/60, 1)), True, WHITE), (self.w-20, self.h-scoremult+20), self.img)
         
     
     def button_handler(self, name : str) -> None:
@@ -95,7 +95,7 @@ class Stats:
             return
     
     def loop(self, events : list[Event]) -> None:
-        self.g.blit_centered(self.img, (self.g.w//2, self.g.h//2))
+        self.g.blit_aligned(self.img, (self.g.w//2, self.g.h//2))
         for b in self.buttons:
             b.draw()
 
