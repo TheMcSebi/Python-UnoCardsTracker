@@ -5,6 +5,7 @@ from time import time
 from os.path import join, dirname, realpath
 import ctypes
 from tkinter.messagebox import NO
+
 from pygame import Surface, quit as pygame_quit, init as pygame_init
 from pygame.display import set_mode, set_caption, get_surface, update as display_update
 from pygame.event import Event, get as get_events

@@ -39,8 +39,6 @@ class Button:
         if not subtext is None and len(self.subtext) > 0:
             self.font = FONT_LG
 
-            
-    
     def click(self, click_pos : tuple) -> bool:
         (cx, cy) = click_pos
         (x, y) = self.pos

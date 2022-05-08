@@ -7,12 +7,12 @@ from os.path import join, dirname, realpath
 from pygame.locals import *
 from pygame.event import Event
 from pygame.draw import line
+from pygame.time import Clock, get_ticks
 
 from .constants import *
 from .components.button import Button
 from .components.cards import Cards
 from .components.cardstack import CardStack
-#from .components.draggablecard import DraggableCard
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -26,8 +26,6 @@ class Game:
         self.g = game
         self.window = self.g.window
 
-        
-    
     #########################################################################################
 
     def setup(self) -> None:
@@ -42,6 +40,7 @@ class Game:
         self.cards = []
         self.card_stacks = []
         self.card_pos = (0, 0)
+        self.popup = None
 
         self.segwidth = self.g.w / self.g.pcount
         self.buttons = [
@@ -132,6 +131,9 @@ class Game:
 
         if self.dragging_card:
             self.g.blit_aligned(self.dragging_card["img"], self.card_pos)
+        
+        if self.popup:
+            self.popup.draw()
     
     def keydown(self, k : int, kmods : int) -> bool:
         if k == K_q or k == K_ESCAPE:
@@ -140,7 +142,16 @@ class Game:
         
         return False
     
+    def popup_button(self, name : str) -> None:
+        if name == "Yes":
+            self.g.ticks_start += get_ticks() - self.popup.ticks_created
+            self.popup = None
+    
     def mouse_event(self, event : Event) -> bool:
+        if self.popup:
+            self.popup.mouse_event(event)
+            return True
+        
         t = event.type
         p = event.pos
         is_touch = event.touch
@@ -218,4 +229,6 @@ class Game:
             p["cards"] += value
         elif action == "flash":
             p["flashes"] += value
+        elif action == "win":
+            p["wins"] += value
         self.g.playerdata_changed(p, action)
