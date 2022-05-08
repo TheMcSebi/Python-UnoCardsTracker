@@ -73,7 +73,7 @@ class Game:
             # regarding win-buttons
             card_x = self._get_player_position(p["num"]) + self.segwidth//2 - 80
             card_y = self.g.h - self.card_sec_height - 77
-            self.buttons.append(Button(self.g, f"f::crown.png::0.35::player::{p['num']}", (card_x, card_y), None, self.button_handler, FONT_LG, border_size=-1))
+            self.buttons.append(Button(self.g, f"f::crown.png::0.35::win::{p['num']}", (card_x, card_y), None, self.button_handler, FONT_LG, border_size=-1))
 
     def button_handler(self, name : str) -> None:
         if name == "Back":
@@ -91,9 +91,10 @@ class Game:
                 cstack.add_cards(p["cards"])
         elif "::" in name:
             parts = name.split("::")
-            for p in self.g.players:
-                if parts[-1] == p['num']:
-                    self._player_action(p, "win")
+            if parts[-2] == "win":
+                for p in self.g.players:
+                    if int(parts[-1]) == p['num']:
+                        self._player_action(p, "win")
     
     def loop(self, events : list[Event]) -> None:
         for c in self.cards:

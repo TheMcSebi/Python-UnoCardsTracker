@@ -54,6 +54,7 @@ class Uno:
         self.clock = Clock()
         self.state = 0
         self.save_file_name = None
+        self.save_version = None # gets set on load or new game
 
         self.players = []
         self.pcount = 0
@@ -187,6 +188,7 @@ class Uno:
     def new_game(self, playernames : list) -> None:
         if len(playernames) == 0:
             return
+        self.save_version = 2
         
         self.players = []
         for i,p in enumerate(playernames, start = 1):
@@ -236,7 +238,7 @@ class Uno:
             game = json.loads(f.read())
             if not "save_version" in game:
                 # convert save version from 0 to 1
-                game["save_version"] = 1
+                self.game_version = 1
                 for ip, p in enumerate(game["players"]):
                     cards = game["players"][ip]["score"]
                     game["players"][ip].pop("score", None)
@@ -247,7 +249,8 @@ class Uno:
             elif game["save_version"] == 1:
                 # convert to game version 2 if necessary
                 # convert save version from 0 to 1
-                game["save_version"] = 2
+                #game["save_version"] = 2
+                self.game_version = 2
                 for ip, p in enumerate(game["players"]):
                     #cards = game["players"][ip]["score"]
                     
@@ -270,7 +273,11 @@ class Uno:
         if self.save_file_name is None:
             return
         
-        game = {"current_tick": self.get_game_time(), "players": self.players, "save_version": 1}
+        game = {
+            "current_tick": self.get_game_time(), 
+            "players": self.players, 
+            "save_version": self.save_version
+        }
         
         if not os.path.isdir("saves"):
             os.mkdir("saves")
@@ -289,7 +296,7 @@ class Uno:
             value = p["cards"]
         elif action == "flash":
             value = p["flashes"]
-        elif value == "win":
+        elif action == "win":
             value = p["wins"]
         else:
             return
@@ -315,7 +322,6 @@ class Uno:
     #########################################################################################
 
     def exit(self) -> None:
-        #self.save()
         self.run = False
         pygame_quit()
         raise SystemExit()
