@@ -26,10 +26,7 @@ class Game:
         self.g = game
         self.window = self.g.window
 
-        self.card_padding = 30
-        #self.stack_card_distance = 10
-        self.aa = True
-        self.dragging_card = {}
+        
     
     #########################################################################################
 
@@ -38,29 +35,27 @@ class Game:
             self.g.setstate(0)
             return
         
+        self.card_padding = 30
+        self.aa = True
+        self.dragging_card = {}
+        self.cards_gen = Cards()
+        self.cards = []
+        self.card_stacks = []
+        self.card_pos = (0, 0)
+
         self.segwidth = self.g.w / self.g.pcount
         self.buttons = [
             Button(self.g, "Back", (100, 50), (200, 100), self.button_handler, FONT_LG),
-            #Button(self.g, "Stats", (300, 50), (200, 100), self.button_handler, FONT_LG)
-            Button(self.g, "Undo", (300, 50), (200, 100), self.button_handler, FONT_LG)
+            Button(self.g, "Undo", (300, 50), (200, 100), self.button_handler, FONT_LG),
+            Button(self.g, "Stats", (500, 50), (200, 100), self.button_handler, FONT_LG)
         ]
 
-        self.cards_gen = Cards()
         self.card_sec_height = self.cards_gen.h + self.card_padding*2
-        self.cards = []
+        
         card_y = self.g.h - self.card_sec_height/2
         for i,card in enumerate(self.cards_gen.drawing_cards):
             card_x = self.cards_gen.w//2 + self.cards_gen.w*i + self.card_padding*(i+1)
             self.cards.append({"card": card, "img": self.cards_gen.raster_playing_card(card), "pos": (card_x, card_y), "value": int(card[-1:])})
-        self.card_stacks = []
-        #self.stack = []
-        self.card_pos = (0, 0)
-        #self.stack_base_pos = self.stack_pos
-        #self.prev_stack_pos = self.stack_pos
-
-        
-        borderdist = self.card_sec_height//2
-        #self.clear_img_pos = (self.g.w-borderdist, self.g.h-borderdist)
 
         player_sec_height = self.g.h - self.card_sec_height - 155
         
@@ -78,9 +73,7 @@ class Game:
             # regarding win-buttons
             card_x = self._get_player_position(p["num"]) + self.segwidth//2 - 80
             card_y = self.g.h - self.card_sec_height - 77
-            self.buttons.append(Button(self.g, f"f::crown.png::0.35::player{p['num']}", (card_x, card_y), None, self.button_handler, FONT_LG, border_size=-1))
-    
-    
+            self.buttons.append(Button(self.g, f"f::crown.png::0.35::player::{p['num']}", (card_x, card_y), None, self.button_handler, FONT_LG, border_size=-1))
 
     def button_handler(self, name : str) -> None:
         if name == "Back":
@@ -96,15 +89,12 @@ class Game:
                 cstack = self.card_stacks[p["num"] - 1]
                 cstack.reset()
                 cstack.add_cards(p["cards"])
-        else:
+        elif "::" in name:
+            parts = name.split("::")
             for p in self.g.players:
-                if name == f"f::crown.png::p{p['num']}":
-                    self.player_action(p, "win")
-        
-    def _get_player_position(self, pnum : int) -> int:
-        lpos = self.g.w//self.g.pcount*pnum
-        return lpos - self.segwidth//2
-
+                if parts[-1] == p['num']:
+                    self._player_action(p, "win")
+    
     def loop(self, events : list[Event]) -> None:
         for c in self.cards:
             self.g.blit_aligned(c["img"], c["pos"])
@@ -125,41 +115,25 @@ class Game:
             align = (0, 2)
             self.g.blit_aligned(FONT_LG.render(f"{p['name']}", self.aa, self.g.player_colors[p["num"]]), (tpos, self.g.h-self.card_sec_height-120), align=align)
             self.g.blit_aligned(FONT_LG.render(f"{p['cards']} Karten gezogen", self.aa, self.g.player_colors[p["num"]]), (tpos, self.g.h-self.card_sec_height-80), align=align)
-            self.g.blit_aligned(FONT_LG.render(f"{p['flashes']} mal geblitzt", self.aa, self.g.player_colors[p["num"]]), (tpos, self.g.h-self.card_sec_height-40), align=align)
+            self.g.blit_aligned(FONT_LG.render(f"{p['wins']} mal gewonnen", self.aa, self.g.player_colors[p["num"]]), (tpos, self.g.h-self.card_sec_height-40), align=align)
         
         # hlines
         line(self.window, WHITE, (0, self.g.h - self.card_sec_height), (self.g.w, self.g.h - self.card_sec_height), 5)
         line(self.window, WHITE, (0, self.g.h - self.card_sec_height - 155), (self.g.w, self.g.h - self.card_sec_height - 155), 5)
 
-        #for i,c in enumerate(self.stack):
-        #    self.g.blit_centered(c["img"], (self.stack_pos[0] + c["offset"][0], self.stack_pos[1] + c["offset"][1] - i*self.stack_card_distance))
-        
         # game timer
         game_time = FONT_MD.render(str(timedelta(seconds=self.g.get_game_time()//1000)), self.aa, WHITE)
         self.window.blit(game_time, (self.g.w - game_time.get_size()[0] - 5, 5))
 
-        if self.dragging_card:
-            self.g.blit_aligned(self.dragging_card["img"], self.card_pos)
-        
-        # clear button image
-        #self.g.blit_centered(self.clear_img, self.clear_img_pos)
-        # current stack size
-        #self.g.blit_centered(FONT_XL.render(f"({len(self.stack)})", self.aa, WHITE), (self.clear_img_pos[0] - (self.g.w - self.clear_img_pos[0] + 20), self.clear_img_pos[1]))
-
         # menu buttons
         for b in self.buttons:
             b.draw()
+
+        if self.dragging_card:
+            self.g.blit_aligned(self.dragging_card["img"], self.card_pos)
     
     def keydown(self, k : int, kmods : int) -> bool:
-        if k > K_0 and k <= K_9:
-            #num = k - K_1
-            #cards = self.cards_gen.get_random_cards(num)
-            #for c in cards:
-                #self.stack.append({"img": self.cards_gen.raster_playing_card(c, randint(0, 180)-90), "offset": (randint(0, 20)-10, 0)})
-                #self.player_action(self.g.players[num], "draw")
-            return True
-
-        elif k == K_q or k == K_ESCAPE:
+        if k == K_q or k == K_ESCAPE:
             self.g.setstate(0)
             return True
         
@@ -172,9 +146,6 @@ class Game:
         
         if t == MOUSEBUTTONDOWN:
             b = event.button
-            #if self.g.check_collision_center(self.stack_pos, (self.cards_gen.w, self.cards_gen.h), p):
-            #    self.dragging_stack = b
-            #    return True
             if self.dragging_card:
                 return True
             for c in self.cards:
@@ -184,7 +155,7 @@ class Game:
         elif t == MOUSEBUTTONUP:
             b = event.button
             
-            is_over_player = self.get_player_clicked(p)
+            is_over_player = self._get_player_clicked(p)
 
             if self.dragging_card:
 
@@ -192,7 +163,7 @@ class Game:
                     value = self.dragging_card["value"]
                     #self.stack_pos = self.stack_base_pos
                     self.card_stacks[is_over_player["num"] - 1].add_cards(value)
-                    self.player_action(is_over_player, "draw", value)
+                    self._player_action(is_over_player, "draw", value)
                     #cstack.add_cards(p["cards"])
                     #self.stack = []
                     self.dragging_card = {}
@@ -207,9 +178,9 @@ class Game:
                         if button.click(p): 
                             return True
                 # check players
-                is_over_player = self.get_player_clicked(p)
+                is_over_player = self._get_player_clicked(p)
                 if not is_over_player is None:
-                    self.player_action(is_over_player, "flash")
+                    self._player_action(is_over_player, "flash")
         elif t == MOUSEMOTION:
             r = event.rel
             b = event.buttons
@@ -219,34 +190,11 @@ class Game:
         return False
 
     def click(self, pos : tuple, btn = int) -> bool:
-        #(x, y) = pos
-        #
-        #if btn == BUTTON_LEFT:
-        #    for c in self.cards:
-        #        if self.g.check_collision_center(c["pos"], c["img"].get_size(), pos):
-        #            draw_cards = 0
-        #            if c["card"] == "red_draw2":
-        #                draw_cards = 2
-        #            elif c["card"] == "red_8":
-        #                draw_cards = 8
-        #            elif c["card"] == "wildplus4":
-        #                draw_cards = 4
-        #            
-        #            if draw_cards > 0:
-        #                cards = self.cards_gen.get_random_cards(draw_cards)
-        #                for c in cards:
-        #                    self.stack.append({"img": self.cards_gen.raster_playing_card(c, randint(0, 180)-90), "offset": (randint(0, 20)-10, 0)})
-        #            
-        #            return True
-        #    #if self.g.check_collision_center(self.clear_img_pos, self.clear_img.get_size(), pos):
-        #    #    self.stack = []
-        #    #    self.stack_pos = self.stack_base_pos
-        #    #    return True
-            return False
+        return False
     
     #########################################################################################
     
-    def get_player_clicked(self, click_pos : tuple) -> dict:
+    def _get_player_clicked(self, click_pos : tuple) -> dict:
         if click_pos[1] > self.g.h-self.card_sec_height:
             return None
         for p in self.g.players:
@@ -255,7 +203,11 @@ class Game:
                 return p
         return None
     
-    def player_action(self, p : dict, action : str, value : int = 1) -> None:
+    def _get_player_position(self, pnum : int) -> int:
+        lpos = self.g.w//self.g.pcount*pnum
+        return lpos - self.segwidth//2
+    
+    def _player_action(self, p : dict, action : str, value : int = 1) -> None:
         if p is None:
             return
 

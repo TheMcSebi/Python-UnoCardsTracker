@@ -195,6 +195,7 @@ class Uno:
                 "name": p,
                 "cards": 0,
                 "flashes": 0,
+                "wins": 0,
                 "history": [],
             })
         self.pcount = len(self.players)
@@ -245,6 +246,18 @@ class Uno:
                         game["players"][ip]["history"][ih] = {"action": "draw", "time": h[1], "value": h[0]}
             elif game["save_version"] == 1:
                 # convert to game version 2 if necessary
+                # convert save version from 0 to 1
+                game["save_version"] = 2
+                for ip, p in enumerate(game["players"]):
+                    #cards = game["players"][ip]["score"]
+                    
+                    game["players"][ip]["wins"] = 0
+                    
+                    for ih, h in enumerate(p["history"]):
+                        action = h["action"]
+                        if h["action"] == "flash":
+                            action = "win"
+                        game["players"][ip]["history"][ih] = {"action": action, "time": h["time"], "value": h["value"]}
                 pass
 
             self.players = game["players"]

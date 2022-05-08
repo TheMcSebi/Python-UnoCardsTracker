@@ -15,6 +15,7 @@ class CardStack:
         self.size = size
         self.v_dist = 2
         self.size = size
+        self.stack_height = [230, 460, 680, 900, 1120, 1340, 1560, 1780, 2000]
         self.reset()
 
     def reset(self) -> None:
@@ -30,23 +31,23 @@ class CardStack:
     
     def add_cards(self, num : int = 1) -> None:
         for i in range(0, num):
-            rowid = (self.stack_size**1.3)//500
+            #rowid = (self.stack_size**1.3)//500
             #x_pos = (rowid * self.size[0]) * 1.5
             #y_pos = self.size[1] - 50 -(rowid*60) - self.stack_size*self.v_dist
-            if self.stack_size < 220:
+
+            if self.stack_size < self.stack_height[0]:
                 pos = (self.size[0]//2, self.size[1] - 100 - self.stack_size*self.v_dist)
-                
-            elif self.stack_size < 380:
-                pos = (self.size[0]//2 - 40, self.size[1] - 70 - (self.stack_size-220)*self.v_dist)
-            elif self.stack_size < 540:
-                pos = (self.size[0]//2 + 40, self.size[1] - 70 - (self.stack_size-380)*self.v_dist)
-            elif self.stack_size < 700:
-                pos = (self.size[0]//2 - 80, self.size[1] - 35 - (self.stack_size-700)*self.v_dist)
-            elif self.stack_size < 860:
-                pos = (self.size[0]//2, self.size[1] - 35 - (self.stack_size-860)*self.v_dist)
-            elif self.stack_size < 1020:
-                pos = (self.size[0]//2 + 80, self.size[1] - 35 - (self.stack_size-1020)*self.v_dist)
-            #pos = (pos[0], pos[1]+50)
+            elif self.stack_size < self.stack_height[1]:
+                pos = (self.size[0]//2 - 40, self.size[1] - 70 - (self.stack_size-self.stack_height[0])*self.v_dist)
+            elif self.stack_size < self.stack_height[2]:
+                pos = (self.size[0]//2 + 40, self.size[1] - 70 - (self.stack_size-self.stack_height[1])*self.v_dist)
+            elif self.stack_size < self.stack_height[3]:
+                pos = (self.size[0]//2 - 80, self.size[1] - 35 - (self.stack_size-self.stack_height[2])*self.v_dist)
+            elif self.stack_size < self.stack_height[4]:
+                pos = (self.size[0]//2, self.size[1] - 35 - (self.stack_size-self.stack_height[3])*self.v_dist)
+            else: #if self.stack_size < self.stack_height[5]:
+                pos = (self.size[0]//2 + 80, self.size[1] - 35 - (self.stack_size-self.stack_height[4])*self.v_dist)
+            
             self.g.blit_aligned(self.card_back_img, pos, self.stack_img)
             self.stack_size += 1
         
