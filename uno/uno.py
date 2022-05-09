@@ -71,7 +71,8 @@ class Uno:
     @staticmethod
     def get_app_folder() -> str:
         """
-        Get application folder and create it if it doesn't exist
+        Get application storage directory
+        If it doesn't exist, create it
         """
         # on windows return %APPDATA%\Uno
         # on linux return ~/.uno
@@ -118,6 +119,9 @@ class Uno:
             display_update()
     
     def undo(self) -> None:
+        """
+        Undo the last player action
+        """
         last_value = 0
         last_time = 0
         last_index = 0
@@ -156,6 +160,10 @@ class Uno:
             print("nothing to undo")
     
     def setstate(self, num : int) -> None:
+        """
+        Set the screen state of the game
+        :param num: screen number
+        """
         self.state = num
         if self.state >= len(self.screens):
             self.state = 0
@@ -163,15 +171,27 @@ class Uno:
             self.state = len(self.screens) - 1
         self.screens[self.state].setup()
     
-    def load_asset_image(self, imgname : str, rescale : int = None) -> Surface:
+    def load_asset_image(self, imgname : str, rescale : float = None) -> Surface:
+        """
+        Load an image from the assets folder
+        :param imgname: name of the image
+        :param rescale: rescale the image to this size
+        """
         img = load_image(join(self.assets_dir, imgname)).convert_alpha()
+        
         if not rescale is None:
             imsize = img.get_size()
-            print(imsize)
             img = scale(img, (int(imsize[0]*rescale), int(imsize[1]*rescale)))
+        
         return img
     
     def check_collision_center(self, center_pos : tuple, area_size : tuple, touch_pos : tuple) -> bool:
+        """
+        Check if a point is inside a rectangle
+        :param center_pos: center position of the rectangle
+        :param area_size: size of the rectangle
+        :param touch_pos: position of the point
+        """
         return (center_pos[0] - area_size[0] / 2 <= touch_pos[0] <= center_pos[0] + area_size[0] / 2) and (center_pos[1] - area_size[1] / 2 <= touch_pos[1] <= center_pos[1] + area_size[1] / 2)
 
     
@@ -187,6 +207,11 @@ class Uno:
     #########################################################################################
 
     def new_game(self, playernames : list) -> None:
+        """
+        Start a new game
+        :param playernames: list of player names
+        """
+
         if len(playernames) == 0:
             return
         self.save_version = 2
@@ -209,6 +234,10 @@ class Uno:
         self.save_file_name = f"savegame_{datestr}.json"
     
     def get_saves(self):
+        """
+        Load all savegames from the savegame folder
+        """
+
         if not os.path.isdir("saves"):
             return []
         
@@ -234,6 +263,11 @@ class Uno:
         
     
     def load(self, filename) -> None:
+        """
+        Load a previously saved game
+        :param filename: name of the savegame
+        """
+
         self.save_file_name = filename
         with open(f"saves/{filename}", "r") as f:
             game = json.loads(f.read())
@@ -271,6 +305,9 @@ class Uno:
             self.setstate(1)
     
     def save(self) -> None:
+        """
+        Save the current game
+        """
         if self.save_file_name is None:
             return
         

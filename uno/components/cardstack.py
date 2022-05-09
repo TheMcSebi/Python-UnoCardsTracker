@@ -14,7 +14,6 @@ class CardStack:
         self.pos = pos
         self.size = size
         self.v_dist = 2
-        self.size = size
         self.stack_height = [230, 460, 680, 900, 1120, 1340, 1560, 1780, 2000]
         self.reset()
 
