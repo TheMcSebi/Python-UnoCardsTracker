@@ -54,7 +54,6 @@ class Game:
             Button(self.g, "Back", (100, 50), (200, 100), self.button_handler, FONT_LG),
             Button(self.g, "Undo", (300, 50), (200, 100), self.button_handler, FONT_LG),
             Button(self.g, "Stats", (500, 50), (200, 100), self.button_handler, FONT_LG),
-            Button(self.g, "Popup", (700, 50), (200, 100), self.button_handler, FONT_LG)
         ]
 
         self.card_sec_height = self.cards_gen.h + self.card_padding*2
@@ -91,10 +90,6 @@ class Game:
 
         elif name == "Undo":
             self.g.undo()
-            return
-
-        elif name == "Popup":
-            self._display_popup()
             return
         
         elif "::" in name:
@@ -193,7 +188,6 @@ class Game:
             is_over_player = self._get_player_clicked(p)
 
             if self.dragging_card:
-
                 if not is_over_player is None:
                     value = self.dragging_card["value"]
                     self.card_stacks[is_over_player["num"] - 1].add_cards(value)
@@ -209,10 +203,11 @@ class Game:
                     for button in self.buttons:
                         if button.click(p): 
                             return True
+                
                 # check players
-                is_over_player = self._get_player_clicked(p)
                 if not is_over_player is None:
-                    self._player_action(is_over_player, "flash")
+                    print(f"clicked player {is_over_player['num']}")
+                    return True
         
         elif t == MOUSEMOTION:
             r = event.rel
@@ -228,7 +223,6 @@ class Game:
     #########################################################################################
 
     def _update_last_action_time(self) -> None:
-        print("timeout reset")
         self.last_action_time = get_ticks()
     
     def _get_player_clicked(self, click_pos : tuple) -> dict:
@@ -257,11 +251,9 @@ class Game:
         
         if action == "draw":
             p["cards"] += value
-        elif action == "flash":
-            p["flashes"] += value
         elif action == "win":
             p["wins"] += value
-        self.g.playerdata_changed(p, action)
+        self.g.history_entry(p, action, value)
     
     def _display_popup(self) -> None:
         self.popup = Popup(self.g, "Hey!", "Are you still playing?", ["Yes", "No"], self.popup_button_handler)

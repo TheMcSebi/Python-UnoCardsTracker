@@ -37,20 +37,19 @@ class Stats:
         self.bottom_margin = 50
 
         # find highest values
-        last_timestamp = 0
-        highest_score = 0
+        max_time = 0
+        max_cards = 0
         for p in self.g.players:
-            for d in p["history"]:
-                if d["time"] > last_timestamp:
-                    last_timestamp = d["time"]
-                if d["action"] == "draw":
-                    if d["value"] > highest_score:
-                        highest_score = d["value"]
-        
-        # calc how to scale the graph
-        tickmult = self.w/last_timestamp
-        scoremult = (self.h-self.bottom_margin)/highest_score
+            if p["history"][-1]["time"] > max_time:
+                max_time = p["history"][-1]["time"]
+            if p["cards"] > max_cards:
+                max_cards = p["cards"]
+            
+        # graph scale
+        tickmult = self.w/max_time
+        scoremult = (self.h-self.bottom_margin)/max_cards
 
+        # create paths
         player_markers = []
         for p in self.g.players:
             obj = {
@@ -61,18 +60,21 @@ class Stats:
                         "action": "draw"
                     }
                 ]
-            
             }
 
             # create paths
-            prev_pos = (0, self.h-self.bottom_margin)
-            for d in p["history"]:
-                pos = (int(d["time"] * tickmult), int(self.h - self.bottom_margin - d["value"] * scoremult))
-                if d["action"] == "win":
-                    pos = (pos[0], prev_pos[1])
-                else:
-                    prev_pos = (pos[0], pos[1])
-                obj["waypoints"].append({"pos": pos, "action": d["action"]})
+            prev_pos = obj["waypoints"][0]["pos"]
+            curr_cards = 0
+            for h in p["history"]:
+                if h["action"] == "draw":
+                    curr_cards += h["value"]
+
+                pos = (
+                    int(h["time"] * tickmult), 
+                    int(self.h - self.bottom_margin - curr_cards*scoremult)
+                )
+
+                obj["waypoints"].append({"pos": pos, "action": h["action"]})
                 
             player_markers.append(deepcopy(obj))
         
@@ -95,16 +97,16 @@ class Stats:
                 
 
         hstepsize = 1
-        while highest_score//hstepsize > 10:
+        while max_cards//hstepsize > 10:
             hstepsize += 1
         print(hstepsize)
+
         # cards lines
-        for i in range(0, highest_score, hstepsize):
+        for i in range(0, max_cards, hstepsize):
             ypos = self.h-self.bottom_margin-i*scoremult
             line(self.img, WHITE, (0, ypos), (self.w, ypos), self.stroke_width//2)
             self.g.blit_aligned(FONT_MD.render(str(i*hstepsize), True, WHITE), (50, ypos-10))
         line(self.img, WHITE, (0, 0), (self.w, 0), self.stroke_width//2)
-        #self.img = flip(self.img.copy(), False, True)
 
         minute_mark_interval = 30
         ticklines = 0
@@ -125,7 +127,7 @@ class Stats:
             self.g.blit_aligned(FONT_MD.render(str(i*minute_mark_interval), True, WHITE), (xpos, self.h-30), self.img)
         # move last number a little to the left
         line(self.img, WHITE, (self.w-self.stroke_width//2, 0), (self.w-self.stroke_width//2, self.h-self.bottom_margin), self.stroke_width//2)
-        self.g.blit_aligned(FONT_MD.render(str(round(last_timestamp/1000/60, 1)), True, WHITE), (self.w-20, self.h-30), self.img)
+        self.g.blit_aligned(FONT_MD.render(str(round(max_time/1000/60, 1)), True, WHITE), (self.w-20, self.h-30), self.img)
         
     
     def button_handler(self, name : str) -> None:

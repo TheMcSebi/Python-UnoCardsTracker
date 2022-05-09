@@ -55,9 +55,11 @@ class Uno:
         self.clock = Clock()
         self.state = 0
         self.save_file_name = None
-        self.save_version = None # gets set on load or new game
+        self.save_version = 3 # gets set on load or new game
+        
 
         self.players = []
+        self.history = []
         self.pcount = 0
         self.ticks_start = 0
         self.player_colors = [(255, 255, 255), (255, 0, 0), (0, 255, 0), (0x3f, 0xab, 0xda), (0x77, 0x00, 0xff), (255, 0, 255), (0, 255, 255)]
@@ -122,42 +124,42 @@ class Uno:
         """
         Undo the last player action
         """
-        last_value = 0
-        last_time = 0
-        last_index = 0
-        last_player = None
-        last_action = None
-        for p in self.players:
-            if len(p["history"]) == 0:
-                continue
-            htime = p["history"][-1]["time"]
-            if htime > last_time:
-                last_time = htime
-                last_player = p
-                last_action = p["history"][-1]["action"]
-        if last_player:
-            sum_actions = 0
-            tmp = 0
-            for i,h in enumerate(last_player["history"]):
-                if h["action"] == last_action:
-                    last_value = tmp
-                    sum_actions += 1
-                    tmp = h["value"]
-                    last_index = i
-            
-            if sum_actions > 1:
-                if last_action == "flash":
-                    last_player["flashes"] = last_value
-                elif last_action == "draw":
-                    last_player["cards"] = last_value
-            elif sum_actions == 1:
-                if last_action == "draw":
-                    last_player["cards"] = 0
-                elif last_action == "flash":
-                    last_player["flashes"] = 0
-            last_player["history"].pop(last_index)
-        else:
-            print("nothing to undo")
+        #last_value = 0
+        #last_time = 0
+        #last_index = 0
+        #last_player = None
+        #last_action = None
+        #for p in self.players:
+        #    if len(p["history"]) == 0:
+        #        continue
+        #    htime = p["history"][-1]["time"]
+        #    if htime > last_time:
+        #        last_time = htime
+        #        last_player = p
+        #        last_action = p["history"][-1]["action"]
+        #if last_player:
+        #    sum_actions = 0
+        #    tmp = 0
+        #    for i,h in enumerate(last_player["history"]):
+        #        if h["action"] == last_action:
+        #            last_value = tmp
+        #            sum_actions += 1
+        #            tmp = h["value"]
+        #            last_index = i
+        #    
+        #    if sum_actions > 1:
+        #        if last_action == "flash":
+        #            last_player["flashes"] = last_value
+        #        elif last_action == "draw":
+        #            last_player["cards"] = last_value
+        #    elif sum_actions == 1:
+        #        if last_action == "draw":
+        #            last_player["cards"] = 0
+        #        elif last_action == "flash":
+        #            last_player["flashes"] = 0
+        #    last_player["history"].pop(last_index)
+        #else:
+        #    print("nothing to undo")
     
     def setstate(self, num : int) -> None:
         """
@@ -214,7 +216,6 @@ class Uno:
 
         if len(playernames) == 0:
             return
-        self.save_version = 2
         
         self.players = []
         for i,p in enumerate(playernames, start = 1):
@@ -222,13 +223,12 @@ class Uno:
                 "num": i,
                 "name": p,
                 "cards": 0,
-                "flashes": 0,
+                #"flashes": 0,
                 "wins": 0,
                 "history": [],
             })
         self.pcount = len(self.players)
         self.ticks_start = get_ticks()
-        self.playerdata_changed(None)
         
         datestr = "{:%Y_%m_%d-%H_%M_%S}".format(datetime.datetime.now())
         self.save_file_name = f"savegame_{datestr}.json"
@@ -255,7 +255,7 @@ class Uno:
                             players.append(f"{p['name']} ({p['score']} cards)")
 
                         else:
-                            players.append(f"{p['name']} ({p['cards']} cards/{p['flashes']} flashes)")
+                            players.append(f"{p['name']} ({p['cards']} cards/{p['wins']} wins)")
                     savegames.append({"filename": filename, "players": players})
             except Exception as e:
                 print(f"Error loading file '{filename}': {e}")
@@ -273,7 +273,7 @@ class Uno:
             game = json.loads(f.read())
             if not "save_version" in game:
                 # convert save version from 0 to 1
-                self.game_version = 1
+                game["game_version"] = 1
                 for ip, p in enumerate(game["players"]):
                     cards = game["players"][ip]["score"]
                     game["players"][ip].pop("score", None)
@@ -281,13 +281,12 @@ class Uno:
                     game["players"][ip]["flashes"] = 0
                     for ih, h in enumerate(p["history"]):
                         game["players"][ip]["history"][ih] = {"action": "draw", "time": h[1], "value": h[0]}
-            elif game["save_version"] == 1:
-                # convert to game version 2 if necessary
-                # convert save version from 0 to 1
-                #game["save_version"] = 2
-                self.game_version = 2
+            if game["save_version"] == 1:
+                # convert save version from 1 to 2
+
+                game["save_version"] = 2
+
                 for ip, p in enumerate(game["players"]):
-                    #cards = game["players"][ip]["score"]
                     
                     game["players"][ip]["wins"] = 0
                     
@@ -296,13 +295,34 @@ class Uno:
                         if h["action"] == "flash":
                             action = "win"
                         game["players"][ip]["history"][ih] = {"action": action, "time": h["time"], "value": h["value"]}
-                pass
+            
+            if game["save_version"] == 2:
+                # convert save version from 2 to 3
+
+                game["save_version"] = 3
+
+                for ip, p in enumerate(game["players"]):
+
+                    game["players"][ip]["wins"] = 0
+                    curr_cards = 0
+                    for ih, h in enumerate(p["history"]):
+                        action = h["action"]
+                        if action == "flash":
+                            game["players"][ip]["history"].pop(ih, None)
+                            continue
+                        if action == "win":
+                            game["players"][ip]["wins"] += 1
+                            game["players"][ip]["history"][ih] = {"action": action, "time": h["time"], "value": 1}
+                        
+                        if action == "draw":
+                            game["players"][ip]["history"][ih] = {"action": action, "time": h["time"], "value": h["value"] - curr_cards}
+                            curr_cards += h["value"]
+            
 
             self.players = game["players"]
             self.ticks_start = get_ticks() - game["current_tick"]
             self.pcount = len(self.players)
-            self.playerdata_changed(None)
-            self.setstate(1)
+            self.setstate(1) # enter game screen
     
     def save(self) -> None:
         """
@@ -323,23 +343,16 @@ class Uno:
         with open(f"saves/{self.save_file_name}", "w") as f:
             f.write(json.dumps(game))
     
-    def playerdata_changed(self, p : dict, action : str = "draw") -> None:
+    def history_entry(self, p : dict, action : str, value : int) -> None:
         """
         Appends a history entry and saves the game
         """
         if p is None:
             return
-
-        if action == "draw":
-            value = p["cards"]
-        elif action == "flash":
-            value = p["flashes"]
-        elif action == "win":
-            value = p["wins"]
-        else:
-            return
-
-        p["history"].append({"action": action, "value": value, "time": self.get_game_time()})
+        
+        history_struct = {"action": action, "value": value, "time": self.get_game_time()}
+        p["history"].append(history_struct.copy())
+        self.history.append({"player": p["name"]} | history_struct)
         self.save()
     
     def blit_aligned(self, src : Surface, dest : tuple, target : Surface = None, align : tuple = (2, 2)) -> None:
