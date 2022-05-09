@@ -7,10 +7,13 @@ This app is designed to be used on a ~16:9 touchscreen device, but can also be c
 
 ## Features
 
-* Track players score
-* Highlights highest and lowest players
+* Track players drawn cards and wins
 * Create, save and load games using the GUI
 * Saved games are stored under `%APPDATA%\Uno` (Win), `~/.uno` (Linux) and `~/Library/Application Support/Uno` (Mac OS)
+* Statistics
+* Undo button
+* Track play time
+* Automatic pause after 5 min
 
 ## How to use
 
@@ -19,10 +22,6 @@ The GUI launches on the screen, the mouse cursor is currently on.
 After launching, start a new game and supply the players names. Confirm each name by pressing the return key.
 
 To confirm the player selection, press enter a second time.
-
-Use the keys <kbd>1</kbd> - <kbd>9</kbd> or tap the upper half of the screen to increase a players score.
-
-To decrease it, tap the lower half or use <kbd>Shift</kbd>+<kbd>Number-Key</kbd>.
 
 Use <kbd>Q</kbd> or the `Back`-Button to quit the game. The game is automatically saved after every action.
 
@@ -39,23 +38,7 @@ or
 
 ## Screenshots
 
-### Main menu while entering player names
-
-![image](https://user-images.githubusercontent.com/1323131/164507094-0754f855-89b8-4ff3-81b5-af8ec8079367.png)
-
-### Menu for loading previously played games
-
-![image](https://user-images.githubusercontent.com/1323131/164507323-7a4ef7dd-91ab-4181-b3c3-be7db2f27063.png)
-
-### In game screen
-
-![image](https://user-images.githubusercontent.com/1323131/164507552-a2a04d07-9538-4176-9854-4b7605bd2b96.png)
-
-### Statistics screen
-
-![image](https://user-images.githubusercontent.com/1323131/164508457-4d6ba036-e11e-460f-8ead-fb5a93be05b3.png)
-
-The numbers below are in minutes
+Coming soon
 
 ## How to build
 
@@ -67,7 +50,8 @@ Run `pyinstaller run.spec` to build a single exe file inside a subdirectory call
 
 ## Todos
 
-An undo button to prevent oneself from messing up the statistics in the end..
+* Some polishing, cleanup
+* Fix undo button
 
 ## License
 
