@@ -56,7 +56,7 @@ class Game:
             Button(self.g, "Back", (100, 50), (200, 100), self.button_handler, FONT_LG),
             Button(self.g, "Undo", (300, 50), (200, 100), self.button_handler, FONT_LG),
             Button(self.g, "Stats", (500, 50), (200, 100), self.button_handler, FONT_LG),
-            Button(self.g, "Popup", (700, 50), (200, 100), self.button_handler, FONT_LG),
+            Button(self.g, "Pause", (700, 50), (200, 100), self.button_handler, FONT_LG),
             #Button(self.g, "Test", (900, 50), (200, 100), self.button_handler, FONT_LG),
         ]
 
@@ -101,8 +101,8 @@ class Game:
             self.g.undo()
             return
 
-        elif name == "Popup":
-            self._display_popup()
+        elif name == "Pause":
+            self._display_pause_popup()
             return
         
         elif name == "Test":
@@ -173,7 +173,7 @@ class Game:
         if self.popup:
             self.popup.draw()
         elif self.last_action_time + self.popup_delay < get_ticks():
-            self._display_popup()
+            self._display_pause_popup()
     
     def keydown(self, k : int, kmods : int) -> bool:
         if k == K_q or k == K_ESCAPE:
@@ -288,5 +288,5 @@ class Game:
             self.history_console_entry(f"{p['name']} wins")
         self.g.playerdata_changed(p, action)
     
-    def _display_popup(self) -> None:
+    def _display_pause_popup(self) -> None:
         self.popup = Popup(self.g, "Hey!", "Are you still playing?", ["Yes", "No"], self.popup_button_handler)
