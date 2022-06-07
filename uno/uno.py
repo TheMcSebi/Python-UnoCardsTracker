@@ -146,11 +146,15 @@ class Uno:
                     last_index = i
             
             if sum_actions > 1:
-                if last_action == "draw":
+                if last_action == "win":
+                    last_player["wins"] = last_value
+                elif last_action == "draw":
                     last_player["cards"] = last_value
             elif sum_actions == 1:
                 if last_action == "draw":
                     last_player["cards"] = 0
+                elif last_action == "win":
+                    last_player["wins"] = 0
             last_player["history"].pop(last_index)
         else:
             print("nothing to undo")
@@ -190,7 +194,6 @@ class Uno:
         """
         return (center_pos[0] - area_size[0] / 2 <= touch_pos[0] <= center_pos[0] + area_size[0] / 2) and (center_pos[1] - area_size[1] / 2 <= touch_pos[1] <= center_pos[1] + area_size[1] / 2)
 
-    
     #########################################################################################
 
     def loop(self, events : list[Event]) -> None:
