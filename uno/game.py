@@ -47,7 +47,7 @@ class Game:
         self.star_image = self.g.load_asset_image("star.png", 0.2)
         self.last_action_time = None
         self._update_last_action_time()
-        self.popup_delay = 300000
+        self.popup_delay = 300000 # 5 min
         self.history_console = []
         self.history_console_length = 16
 
