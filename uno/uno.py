@@ -146,15 +146,11 @@ class Uno:
                     last_index = i
             
             if sum_actions > 1:
-                if last_action == "flash":
-                    last_player["flashes"] = last_value
-                elif last_action == "draw":
+                if last_action == "draw":
                     last_player["cards"] = last_value
             elif sum_actions == 1:
                 if last_action == "draw":
                     last_player["cards"] = 0
-                elif last_action == "flash":
-                    last_player["flashes"] = 0
             last_player["history"].pop(last_index)
         else:
             print("nothing to undo")
@@ -222,7 +218,7 @@ class Uno:
                 "num": i,
                 "name": p,
                 "cards": 0,
-                "flashes": 0,
+                #"flashes": 0,
                 "wins": 0,
                 "history": [],
             })
@@ -251,11 +247,11 @@ class Uno:
                     game = json.loads(f.read())
                     players = []
                     for p in game["players"]:
-                        if not "cards" in p:
-                            players.append(f"{p['name']} ({p['score']} cards)")
-
-                        else:
-                            players.append(f"{p['name']} ({p['cards']} cards/{p['flashes']} flashes)")
+                        #if not "cards" in p:
+                        #    players.append(f"{p['name']} ({p['score']} cards)")
+#
+                        #else:
+                        players.append(f"{p['name']} ({p['cards']} cards/{p['wins']} wins)")
                     savegames.append({"filename": filename, "players": players})
             except Exception as e:
                 print(f"Error loading file '{filename}': {e}")
@@ -332,8 +328,6 @@ class Uno:
 
         if action == "draw":
             value = p["cards"]
-        elif action == "flash":
-            value = p["flashes"]
         elif action == "win":
             value = p["wins"]
         else:

@@ -48,13 +48,16 @@ class Game:
         self.last_action_time = None
         self._update_last_action_time()
         self.popup_delay = 300000
+        self.history_console = []
+        self.history_console_length = 16
 
         self.segwidth = self.g.w / self.g.pcount
         self.buttons = [
             Button(self.g, "Back", (100, 50), (200, 100), self.button_handler, FONT_LG),
             Button(self.g, "Undo", (300, 50), (200, 100), self.button_handler, FONT_LG),
             Button(self.g, "Stats", (500, 50), (200, 100), self.button_handler, FONT_LG),
-            Button(self.g, "Popup", (700, 50), (200, 100), self.button_handler, FONT_LG)
+            Button(self.g, "Popup", (700, 50), (200, 100), self.button_handler, FONT_LG),
+            #Button(self.g, "Test", (900, 50), (200, 100), self.button_handler, FONT_LG),
         ]
 
         self.card_sec_height = self.cards_gen.h + self.card_padding*2
@@ -79,7 +82,12 @@ class Game:
 
             # regarding win-buttons
             self.buttons.append(Button(self.g, f"f::crown.png::0.35::win::{p['num']}", self._get_win_button_pos(p["num"]), None, self.button_handler, FONT_LG, border_size=-1))
-
+    
+    def history_console_entry(self, msg : str) -> None:
+        self.history_console.append(msg)
+        if len(self.history_console) > self.history_console_length:
+            self.history_console.pop(0)
+    
     def button_handler(self, name : str) -> None:
         if name == "Back":
             self.g.setstate(0)
@@ -95,6 +103,10 @@ class Game:
 
         elif name == "Popup":
             self._display_popup()
+            return
+        
+        elif name == "Test":
+            self.history_console_entry("Test " + str(get_ticks()))
             return
         
         elif "::" in name:
@@ -132,9 +144,19 @@ class Game:
         line(self.window, WHITE, (0, self.g.h - self.card_sec_height), (self.g.w, self.g.h - self.card_sec_height), 5)
         line(self.window, WHITE, (0, self.g.h - self.card_sec_height - 155), (self.g.w, self.g.h - self.card_sec_height - 155), 5)
 
-        # game timer
-        game_time = FONT_MD.render(str(timedelta(seconds=self.g.get_game_time()//1000)), self.aa, WHITE)
-        self.window.blit(game_time, (self.g.w - game_time.get_size()[0] - 5, 5))
+        # game timer and session timer
+        game_time = FONT_MD.render("Game time: " + str(timedelta(seconds=self.g.get_game_time()//1000)), self.aa, WHITE)
+        session_time = FONT_MD.render("Session time: " + str(timedelta(seconds=get_ticks()//1000)), self.aa, WHITE)
+        fontheight = session_time.get_size()[1] # they have the same height
+
+        self.window.blit(game_time, (self.g.w - (game_time.get_size()[0] + 5), 5))
+        self.window.blit(session_time, (self.g.w - (session_time.get_size()[0] + 5), 10 + fontheight))
+
+        # draw history console in the bottom right corner
+        for i,msg in enumerate(self.history_console[::-1]):
+            txt = FONT_MD.render(msg, self.aa, WHITE)
+            dim = txt.get_size()
+            self.window.blit(txt, (self.g.w - 5 - dim[0], self.g.h - self.card_sec_height + (i+1)*(dim[1] + 5)))
 
         # menu buttons
         for b in self.buttons:
@@ -210,9 +232,9 @@ class Game:
                         if button.click(p): 
                             return True
                 # check players
-                is_over_player = self._get_player_clicked(p)
-                if not is_over_player is None:
-                    self._player_action(is_over_player, "flash")
+                #is_over_player = self._get_player_clicked(p)
+                #if not is_over_player is None:
+                #    self._player_action(is_over_player, "flash")
         
         elif t == MOUSEMOTION:
             r = event.rel
@@ -257,10 +279,13 @@ class Game:
         
         if action == "draw":
             p["cards"] += value
-        elif action == "flash":
-            p["flashes"] += value
+            self.history_console_entry(f"{p['name']} draws {value} card")
+        #elif action == "flash":
+        #    p["flashes"] += value
+        #    self.history_console_entry(f"{p['name']} draws {value} card")
         elif action == "win":
             p["wins"] += value
+            self.history_console_entry(f"{p['name']} wins")
         self.g.playerdata_changed(p, action)
     
     def _display_popup(self) -> None:
