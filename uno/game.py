@@ -15,6 +15,7 @@ from .components.cards import Cards
 from .components.cardstack import CardStack
 from .components.particleexplosion import ParticleExplosion
 from .components.popup import Popup
+from .components.scrollablelist import ScrollableList
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -35,6 +36,8 @@ class Game:
             self.g.setstate(0)
             return
         
+        self.session_start_time = get_ticks()
+
         self.card_padding = 30
         self.aa = True
         self.dragging_card = {}
@@ -47,13 +50,17 @@ class Game:
         self.star_image = self.g.load_asset_image("star.png", 0.2)
         self.last_action_time = None
         self._update_last_action_time()
-        self.popup_delay = 300000
+        self.popup_delay = 300_000 # 5 min
+        
+        #self.history_console_length = 16
 
         self.segwidth = self.g.w / self.g.pcount
         self.buttons = [
             Button(self.g, "Back", (100, 50), (200, 100), self.button_handler, FONT_LG),
             Button(self.g, "Undo", (300, 50), (200, 100), self.button_handler, FONT_LG),
             Button(self.g, "Stats", (500, 50), (200, 100), self.button_handler, FONT_LG),
+            Button(self.g, "Pause", (700, 50), (200, 100), self.button_handler, FONT_LG),
+            #Button(self.g, "Test", (900, 50), (200, 100), self.button_handler, FONT_LG),
         ]
 
         self.card_sec_height = self.cards_gen.h + self.card_padding*2
@@ -64,7 +71,7 @@ class Game:
             self.cards.append({"card": card, "img": self.cards_gen.raster_playing_card(card), "pos": (card_x, card_y), "value": int(card[-1:])})
 
         player_sec_height = self.g.h - self.card_sec_height - 155
-        
+        self.session_stats = {}
         for p in self.g.players:
             # add cardstacks for each player
             cstack = CardStack(
@@ -79,6 +86,12 @@ class Game:
             # regarding win-buttons
             self.buttons.append(Button(self.g, f"f::crown.png::0.35::win::{p['num']}", self._get_win_button_pos(p["num"]), None, self.button_handler, FONT_LG, border_size=-1))
 
+            # add session stats
+            self.session_stats[p["name"]] = {"wins": 0, "cards": 0}
+        
+        # Instanciate the history console 
+        self.history_console = ScrollableList(self.g, (self.g.w - 300, self.g.h - self.card_sec_height + 5))
+    
     def button_handler(self, name : str) -> None:
         if name == "Back":
             self.g.setstate(0)
@@ -89,7 +102,16 @@ class Game:
             return
 
         elif name == "Undo":
-            self.g.undo()
+            if self.g.undo():
+                self.history_console.pop()
+            return
+
+        elif name == "Pause":
+            self._display_pause_popup()
+            return
+        
+        elif name == "Test":
+            self.history_console_entry("Test " + str(get_ticks()))
             return
         
         elif "::" in name:
@@ -118,18 +140,36 @@ class Game:
             
             # name
             tpos = lpos - self.segwidth + 20
+            tpos2 = lpos - self.segwidth//2
             align = (0, 2)
+            
             self.g.blit_aligned(FONT_LG.render(f"{p['name']}", self.aa, self.g.player_colors[p["num"]]), (tpos, self.g.h-self.card_sec_height-120), align=align)
-            self.g.blit_aligned(FONT_LG.render(f"{p['cards']} Karten gezogen", self.aa, self.g.player_colors[p["num"]]), (tpos, self.g.h-self.card_sec_height-80), align=align)
-            self.g.blit_aligned(FONT_LG.render(f"{p['wins']} mal gewonnen", self.aa, self.g.player_colors[p["num"]]), (tpos, self.g.h-self.card_sec_height-40), align=align)
+            
+            self.g.blit_aligned(FONT_LG.render(f"{p['cards']} cards", self.aa, self.g.player_colors[p["num"]]), (tpos, self.g.h-self.card_sec_height-80), align=align)
+            self.g.blit_aligned(FONT_MD.render(f"({self.session_stats[p['name']]['cards']})", self.aa, self.g.player_colors[p["num"]]), (tpos2, self.g.h-self.card_sec_height-80), align=align)
+            
+            self.g.blit_aligned(FONT_LG.render(f"{p['wins']} wins", self.aa, self.g.player_colors[p["num"]]), (tpos, self.g.h-self.card_sec_height-40), align=align)
+            self.g.blit_aligned(FONT_MD.render(f"({self.session_stats[p['name']]['wins']})", self.aa, self.g.player_colors[p["num"]]), (tpos2, self.g.h-self.card_sec_height-40), align=align)
         
         # hlines
         line(self.window, WHITE, (0, self.g.h - self.card_sec_height), (self.g.w, self.g.h - self.card_sec_height), 5)
         line(self.window, WHITE, (0, self.g.h - self.card_sec_height - 155), (self.g.w, self.g.h - self.card_sec_height - 155), 5)
 
-        # game timer
-        game_time = FONT_MD.render(str(timedelta(seconds=self.g.get_game_time()//1000)), self.aa, WHITE)
-        self.window.blit(game_time, (self.g.w - game_time.get_size()[0] - 5, 5))
+        # game timer and session timer
+        game_time = FONT_MD.render("Game time: " + str(timedelta(seconds=self.g.get_game_time()//1000)), self.aa, WHITE)
+        session_time = FONT_MD.render("Session time: " + str(timedelta(seconds=(get_ticks()-self.session_start_time)//1000)), self.aa, WHITE)
+        fontheight = session_time.get_size()[1] # they have the same height
+
+        self.window.blit(game_time, (self.g.w - (game_time.get_size()[0] + 5), 5))
+        self.window.blit(session_time, (self.g.w - (session_time.get_size()[0] + 5), 10 + fontheight))
+
+        # # draw history console in the bottom right corner
+        # for i,msg in enumerate(self.history_console[::-1]):
+        #     txt = FONT_MD.render(msg, self.aa, WHITE)
+        #     dim = txt.get_size()
+        #     self.window.blit(txt, (self.g.w - 5 - dim[0], self.g.h - self.card_sec_height + (i+1)*(dim[1] + 5)))
+        
+        self.history_console.draw()
 
         # menu buttons
         for b in self.buttons:
@@ -145,8 +185,9 @@ class Game:
         
         if self.popup:
             self.popup.draw()
+        
         elif self.last_action_time + self.popup_delay < get_ticks():
-            self._display_popup()
+            self._display_pause_popup() # this enables the popup
     
     def keydown(self, k : int, kmods : int) -> bool:
         if k == K_q or k == K_ESCAPE:
@@ -168,6 +209,9 @@ class Game:
             self.popup.mouse_event(event)
             return True
         
+        if self.history_console.mouse_event(event):
+            return True
+        
         t = event.type
         p = event.pos
         #is_touch = event.touch # unused because unnecessary for functionality
@@ -180,6 +224,7 @@ class Game:
                 if self.g.check_collision_center(c["pos"], c["img"].get_size(), p):
                     self.dragging_card = c
                     self.card_pos = c["pos"]
+                    return True
         
         elif t == MOUSEBUTTONUP:
             self._update_last_action_time()
@@ -188,6 +233,7 @@ class Game:
             is_over_player = self._get_player_clicked(p)
 
             if self.dragging_card:
+
                 if not is_over_player is None:
                     value = self.dragging_card["value"]
                     self.card_stacks[is_over_player["num"] - 1].add_cards(value)
@@ -203,11 +249,10 @@ class Game:
                     for button in self.buttons:
                         if button.click(p): 
                             return True
-                
                 # check players
-                if not is_over_player is None:
-                    print(f"clicked player {is_over_player['num']}")
-                    return True
+                #is_over_player = self._get_player_clicked(p)
+                #if not is_over_player is None:
+                #    self._player_action(is_over_player, "flash")
         
         elif t == MOUSEMOTION:
             r = event.rel
@@ -251,9 +296,15 @@ class Game:
         
         if action == "draw":
             p["cards"] += value
+            self.history_console.add(f"{p['name']} draws {value} cards")
+            self.session_stats[p["name"]]["cards"] += value
+        
         elif action == "win":
             p["wins"] += value
-        self.g.history_entry(p, action, value)
+            self.history_console.add(f"{p['name']} wins")
+            self.session_stats[p["name"]]["wins"] += value
+        
+        self.g.playerdata_changed(p, action)
     
-    def _display_popup(self) -> None:
+    def _display_pause_popup(self) -> None:
         self.popup = Popup(self.g, "Hey!", "Are you still playing?", ["Yes", "No"], self.popup_button_handler)

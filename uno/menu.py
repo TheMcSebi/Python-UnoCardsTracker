@@ -43,9 +43,10 @@ class Menu:
         self.bh = self.g.h//6
         
         self.buttons = [
-            Button(self.g, "Start", (self.g.w//2, self.g.h//2 - self.g.h//4), (self.bw, self.bh), self.button_handler),
-            Button(self.g, "Load", (self.g.w//2, self.g.h//2), (self.bw, self.bh), self.button_handler),
-            Button(self.g, "Quit", (self.g.w//2, self.g.h//2 + self.g.h//4), (self.bw, self.bh), self.button_handler),
+            Button(self.g, "Start", (self.g.w//2, self.bh*1.1*1), (self.bw, self.bh), self.button_handler),
+            Button(self.g, "Load", (self.g.w//2, self.bh*1.1*2), (self.bw, self.bh), self.button_handler),
+            Button(self.g, "Stats", (self.g.w//2, self.bh*1.1*3), (self.bw, self.bh), self.button_handler),
+            Button(self.g, "Quit", (self.g.w//2, self.bh*1.1*4), (self.bw, self.bh), self.button_handler),
         ]
         
         self.print_event = "showevent" in sys.argv
@@ -71,6 +72,9 @@ class Menu:
 
         elif name == "Load":
             self.g.setstate(2)
+        
+        elif name == "Stats":
+            self.g.setstate(4)
 
         elif name == "Quit":
             self.g.exit()

@@ -51,7 +51,6 @@ Run `pyinstaller run.spec` to build a single exe file inside a subdirectory call
 ## Todos
 
 * Some polishing, cleanup
-* Fix undo button
 
 ## License
 
