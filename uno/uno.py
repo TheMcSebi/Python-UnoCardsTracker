@@ -29,6 +29,7 @@ from .menu import Menu
 from .game import Game
 from .load import Load
 from .stats import Stats
+from .globalstats import GlobalStats
 from .constants import *
 
 
@@ -48,7 +49,7 @@ class Uno:
         self.appfolder = Uno.get_app_folder()
         self.assets_dir = join(dirname(realpath(__file__)), "../assets")
 
-        self.screens = [Menu(self), Game(self), Load(self), Stats(self)]
+        self.screens = [Menu(self), Game(self), Load(self), Stats(self), GlobalStats(self)]
 
         # init vars
         self.fps = 60
@@ -135,29 +136,33 @@ class Uno:
                 last_time = htime
                 last_player = p
                 last_action = p["history"][-1]["action"]
-        if last_player:
-            sum_actions = 0
-            tmp = 0
-            for i,h in enumerate(last_player["history"]):
-                if h["action"] == last_action:
-                    last_value = tmp
-                    sum_actions += 1
-                    tmp = h["value"]
-                    last_index = i
+        
+        if not last_player:
+            print("No undoable action")
+            return False
+        
+        sum_actions = 0
+        tmp = 0
+        for i,h in enumerate(last_player["history"]):
+            if h["action"] == last_action:
+                last_value = tmp
+                sum_actions += 1
+                tmp = h["value"]
+                last_index = i
+        
+        if sum_actions > 1:
+            if last_action == "win":
+                last_player["wins"] = last_value
+            elif last_action == "draw":
+                last_player["cards"] = last_value
+        elif sum_actions == 1:
+            if last_action == "draw":
+                last_player["cards"] = 0
+            elif last_action == "win":
+                last_player["wins"] = 0
+        last_player["history"].pop(last_index)
+        return True
             
-            if sum_actions > 1:
-                if last_action == "win":
-                    last_player["wins"] = last_value
-                elif last_action == "draw":
-                    last_player["cards"] = last_value
-            elif sum_actions == 1:
-                if last_action == "draw":
-                    last_player["cards"] = 0
-                elif last_action == "win":
-                    last_player["wins"] = 0
-            last_player["history"].pop(last_index)
-        else:
-            print("nothing to undo")
     
     def setstate(self, num : int) -> None:
         """
@@ -193,7 +198,15 @@ class Uno:
         :param touch_pos: position of the point
         """
         return (center_pos[0] - area_size[0] / 2 <= touch_pos[0] <= center_pos[0] + area_size[0] / 2) and (center_pos[1] - area_size[1] / 2 <= touch_pos[1] <= center_pos[1] + area_size[1] / 2)
-
+    
+    def check_collision(self, topleft : tuple, area_size : tuple, touch_pos : tuple) -> bool:
+        """
+        Check if a point is inside a rectangle
+        :param topleft: top left position of the rectangle
+        :param area_size: size of the rectangle
+        :param touch_pos: position of the point
+        """
+        return (topleft[0] <= touch_pos[0] <= topleft[0] + area_size[0]) and (topleft[1] <= touch_pos[1] <= topleft[1] + area_size[1])
     #########################################################################################
 
     def loop(self, events : list[Event]) -> None:
@@ -232,7 +245,7 @@ class Uno:
         datestr = "{:%Y_%m_%d-%H_%M_%S}".format(datetime.datetime.now())
         self.save_file_name = f"savegame_{datestr}.json"
     
-    def get_saves(self):
+    def get_saves_info(self):
         """
         Load all savegames from the savegame folder
         """
@@ -256,6 +269,26 @@ class Uno:
                         #else:
                         players.append(f"{p['name']} ({p['cards']} cards/{p['wins']} wins)")
                     savegames.append({"filename": filename, "players": players})
+            except Exception as e:
+                print(f"Error loading file '{filename}': {e}")
+        return savegames
+        
+    def get_saves(self):
+        """
+        Load all savegames from the savegame folder and return a list
+        """
+        if not os.path.isdir("saves"):
+            return []
+        
+        savefiles = sorted(os.listdir("saves"), reverse = True)
+        savegames = []
+        for filename in savefiles:
+            if not filename.endswith(".json"):
+                continue
+            try:
+                with open(f"saves/{filename}", "r") as f:
+                    game = json.loads(f.read())
+                    savegames.append({"filename": filename, "data": game})
             except Exception as e:
                 print(f"Error loading file '{filename}': {e}")
         return savegames

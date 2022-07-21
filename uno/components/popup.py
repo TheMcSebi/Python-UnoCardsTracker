@@ -18,7 +18,6 @@ class Popup:
         self.g = g
         self.window = g.window
         #self.pos = (self.g.h//2, self.g.w//2)
-        self.heading = None
         self.heading = heading
         self.text = text
         self.buttons : list[Button] = []

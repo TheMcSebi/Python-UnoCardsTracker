@@ -23,7 +23,7 @@ class Load:
     #########################################################################################
     
     def setup(self) -> None:
-        self.saves = self.g.get_saves()
+        self.saves = self.g.get_saves_info()
         self.bw = self.g.w - self.g.w//3
         self.bh = self.g.h//8
 

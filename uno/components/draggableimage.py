@@ -19,7 +19,7 @@ class DraggableImage:
     def setup(self) -> None:
         pass
 
-    def loop(self, events : list[Event]) -> None:
+    def draw(self, events : list[Event]) -> None:
         self.g.blit_aligned(self.card, self.base_pos)
         for e in events:
             print(e)
