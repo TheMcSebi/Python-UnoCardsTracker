@@ -95,13 +95,11 @@ class Menu:
         return False
         
     def mouse_event(self, event : Event) -> bool:
+        if True in [b.mouse_event(event) for b in self.buttons]:
+            return True
         return False
     
     def click(self, pos : tuple, btn = int) -> bool:
-        if btn == BUTTON_LEFT:
-            for b in self.buttons:
-                if b.click(pos):
-                    return True
         return False
     
     #########################################################################################

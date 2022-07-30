@@ -4,6 +4,7 @@ from pygame.locals import *
 from pygame.draw import rect
 from pygame.font import Font
 from pygame.image import load
+from pygame.event import Event
 
 from ..constants import *
 
@@ -46,6 +47,11 @@ class Button:
         if cx > x-w//2 and cx < x + w//2 and cy > y-h//2 and cy < y + h//2:
             self.handler(self.name)
             return True
+        return False
+    
+    def mouse_event(self, event : Event) -> bool:
+        if event.type == MOUSEBUTTONDOWN:
+            return self.click(event.pos)
         return False
     
     def draw(self, window : Surface = None) -> None:
