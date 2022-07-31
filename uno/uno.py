@@ -5,6 +5,7 @@ from time import time
 from os.path import join, dirname, realpath
 import ctypes
 from tkinter.messagebox import NO
+from typing import Optional
 
 from pygame import Surface, quit as pygame_quit, init as pygame_init
 from pygame.display import set_mode, set_caption, get_surface, update as display_update
@@ -119,9 +120,10 @@ class Uno:
             screen.loop(events)
             display_update()
     
-    def undo(self) -> None:
+    def undo(self) -> Optional[tuple]:
         """
         Undo the last player action
+        Returns a tuple consisting of (player, action, value) on success, None on failure
         """
         last_value = 0
         last_time = 0
@@ -136,10 +138,10 @@ class Uno:
                 last_time = htime
                 last_player = p
                 last_action = p["history"][-1]["action"]
-        
+            
         if not last_player:
             print("No undoable action")
-            return False
+            return None
         
         sum_actions = 0
         tmp = 0
@@ -161,7 +163,7 @@ class Uno:
             elif last_action == "win":
                 last_player["wins"] = 0
         last_player["history"].pop(last_index)
-        return True
+        return (last_player["name"], last_action, last_value)
             
     
     def setstate(self, num : int) -> None:

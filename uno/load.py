@@ -48,9 +48,6 @@ class Load:
         return False
     
     def mouse_event(self, event : Event) -> bool:
-        if True in [b.mouse_event(event) for b in self.buttons]:
-            return True
-        
         if event.touch:
             if event.type == MOUSEBUTTONDOWN:
                 self.maybe_dragging = True
@@ -81,6 +78,13 @@ class Load:
             for b in self.buttons:
                 if not b.name == "Back":
                     b.pos = (b.pos[0], b.pos[1]+self.bh//3)
+        
+        elif btn == BUTTON_LEFT: # needs to be here for the scroll events to take precedence
+            for b in self.buttons:
+                if b.click(pos):
+                    return True
+            pass
+
         return False
-    
+
     #########################################################################################

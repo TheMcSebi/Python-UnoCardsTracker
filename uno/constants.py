@@ -9,6 +9,7 @@ YELLOW = (255, 255, 0)
 
 FONT_SM = SysFont('freesansbold', 1080//40)
 FONT_MD = SysFont('freesansbold', 1080//30)
+FONT_L = SysFont('freesansbold', 1080//25)
 FONT_LG = SysFont('freesansbold', 1080//20)
 FONT_XL = SysFont('freesansbold', 1080//10)
 FONT_MONOSP = SysFont('courier', 1080//25)
