@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from ..uno import Uno
 
 class Popup:
-    def __init__(self, g : Uno, heading : str = None, text : str = None, buttons : list[str] = [], button_handler : function = None) -> None:
+    def __init__(self, g : Uno, heading : str = None, text : str = None, buttons : list[str] = [], button_handler : function = None, is_multiline : bool = False) -> None:
         self.g = g
         self.window = g.window
         #self.pos = (self.g.h//2, self.g.w//2)
@@ -23,6 +23,11 @@ class Popup:
         self.buttons : list[Button] = []
         self.ticks_created = get_ticks()
         self.rect_dims = (self.g.w//2 - self.g.w//4, self.g.h//2 - self.g.h//4, self.g.w//2, self.g.h//2)
+        self.is_multiline = is_multiline
+        if is_multiline:
+            self.font = FONT_L
+        else:
+            self.font = FONT_LG
         
         bsize = (150, 50)
         for i,b in enumerate(buttons):
@@ -44,7 +49,10 @@ class Popup:
         if self.heading is not None:
             self.g.blit_aligned(FONT_XL.render(self.heading, True, WHITE), (self.rect_dims[2], self.rect_dims[3] - self.rect_dims[3]//2 + self.rect_dims[3]//4), window)
         if self.text is not None:
-            self.g.blit_aligned(FONT_LG.render(self.text, True, WHITE), (self.rect_dims[2], self.rect_dims[3] - self.rect_dims[3]//2 + (self.rect_dims[3]//4)*2), window)
+            if not self.is_multiline:
+                self.g.blit_aligned(self.font.render(self.text, True, WHITE), (self.rect_dims[2], self.rect_dims[3] - self.rect_dims[3]//2 + (self.rect_dims[3]//4)*2), window)
+            else:
+                self.render_multi_line(self.text, self.g.w//2 - self.rect_dims[0]//2, self.g.h//2 - self.rect_dims[1]//2 + 50)
         
         for b in self.buttons:
             b.draw(window)
@@ -58,3 +66,9 @@ class Popup:
             for b in self.buttons:
                 if b.click(event.pos):
                     return
+    
+    def render_multi_line(self, text : str, x : int, y : int) -> None:
+        lines = text.splitlines()
+        fheight = self.font.get_height()
+        for i, l in enumerate(lines):
+            self.window.blit(self.font.render(l, True, WHITE), (x, y + (fheight+6)*i))
