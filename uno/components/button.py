@@ -50,7 +50,7 @@ class Button:
         return False
     
     def mouse_event(self, event : Event) -> bool:
-        if event.type == MOUSEBUTTONDOWN:
+        if event.type == MOUSEBUTTONUP:
             return self.click(event.pos)
         return False
     
