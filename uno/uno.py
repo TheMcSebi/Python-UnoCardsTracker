@@ -61,7 +61,7 @@ class Uno:
         self.players = []
         self.pcount = 0
         self.ticks_start = 0
-        self.player_colors = [(255, 255, 255), (255, 0, 0), (0, 255, 0), (0x3f, 0xab, 0xda), (0x77, 0x00, 0xff), (255, 0, 255), (0, 255, 255)]
+        self.player_colors = [(255, 255, 255), (255, 0, 0), (0, 255, 0), (0x3f, 0xab, 0xda), (0x77, 0x00, 0xff), (255, 255, 0), (255, 0, 255), (0, 255, 255)]
         
         self.w = 0
         self.h = 0
@@ -369,7 +369,7 @@ class Uno:
         else:
             return
 
-        p["history"].append({"action": action, "value": value, "time": self.get_game_time()})
+        p["history"].append({"action": action, "value": value, "time": self.get_game_time(), "timestamp": int(time())})
         self.save()
     
     def blit_aligned(self, src : Surface, dest : tuple, target : Surface = None, align : tuple = (2, 2)) -> None:
