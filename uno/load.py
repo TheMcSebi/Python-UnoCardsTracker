@@ -1,5 +1,6 @@
 from __future__ import annotations
 from re import I
+from pygame import Color
 from pygame.locals import *
 from pygame.event import Event
 
@@ -26,11 +27,26 @@ class Load:
         self.saves = self.g.get_saves_info()
         self.bw = self.g.w - self.g.w//8
         self.bh = self.g.h//8
-        
+
         self.buttons = []
         for i, s in enumerate(self.saves):
-            self.buttons.append(Button(self.g, s["filename"], (self.g.w//2, self.g.h//12 + i*self.bh), (self.bw, self.bh), self.button_handler, FONT_LG, ", ".join(s["players"]), FONT_MD))
-        self.buttons.append(Button(self.g, "Back", (100, 50), (200, 100), self.button_handler, FONT_LG))
+            btncol = Color(0, 0, 0)
+            btncol.hsva = (i*(360/len(self.saves)), 100, 100, 100)
+            self.buttons.append(Button(
+                self.g, 
+                name=s["title"], 
+                pos=(self.g.w//2, self.g.h//12 + i*self.bh), 
+                size=(self.bw, self.bh), 
+                handler=self.button_handler, 
+                font=FONT_L, 
+                subtext=", ".join(s["players"]), 
+                font_subtext=FONT_MD, 
+                color=btncol,
+                tag=s["filename"]
+                #color=self.g.player_colors[len(s["players"])-2]
+            ))
+
+        self.buttons.append(Button(self.g, name="Back", pos=(100, 50), size=(200, 100), handler=self.button_handler, font=FONT_LG))
     
     def button_handler(self, name : str) -> None:
         if name == "Back":

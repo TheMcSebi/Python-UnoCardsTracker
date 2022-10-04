@@ -58,6 +58,7 @@ class Uno:
         self.state = 0
         self.save_file_name = None
         self.save_version = None # gets set on load or new game
+        self.debug = DEBUG
 
         self.players = []
         self.pcount = 0
@@ -264,15 +265,25 @@ class Uno:
                 with open(f"saves/{filename}", "r") as f:
                     game = json.loads(f.read())
                     players = []
+                    total_cards = 0
+                    total_games = 0
                     for p in game["players"]:
                         #if not "cards" in p:
                         #    players.append(f"{p['name']} ({p['score']} cards)")
 #
                         #else:
-                        players.append(f"{p['name']} ({p['cards']} cards/{p['wins']} wins)")
-                    savegames.append({"filename": filename, "players": players})
+                        players.append(f"{p['name']} ({p['cards']} / {p['wins']})")
+                        total_cards += p["cards"]
+                        total_games += p["wins"]
+                    if filename.startswith("savegame_"):
+                        titleparts = filename[len("savegame_"):-5].split("-")
+                        savetitle = f"{titleparts[0].replace('_', '-')} {titleparts[1].replace('_', ':')}"
+                    else:
+                        savetitle = filename[:-5]
+                    savegames.append({"filename": filename, "players": players, "title": f"{savetitle} ({total_cards} / {total_games})"})
             except Exception as e:
                 print(f"Error loading file '{filename}': {e}")
+            savegames = sorted(savegames, key = lambda x: x["title"], reverse = True)
         return savegames
         
     def get_saves(self):

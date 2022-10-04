@@ -8,7 +8,7 @@ from os.path import join, dirname, realpath
 from pygame.locals import *
 from pygame.event import Event
 from pygame.draw import line, rect
-from pygame.time import Clock, get_ticks
+from pygame.time import Clock, get_ticks, set_timer
 from pygame.transform import scale
 
 from .constants import *
@@ -44,17 +44,17 @@ class Game:
         self.card_padding = 30
         self.aa = True
         self.dragging_card = {}
-        self.cards_gen = Cards()
+        self.cards_gen = Cards(scale_factor=0.80)
         self.cards = []
         self.card_stacks : list[CardStack]= []
         self.card_pos = (0, 0)
         self.popup = None
         self.particleexplosions = []
         self.star_image = self.g.load_asset_image("star.png", 0.2)
-        large_card_back_image = self.cards_gen.raster_playing_card("back")
-        large_card_back_image_size = large_card_back_image.get_size()
-        card_back_img_scale = 0.12
-        self.card_back_img = scale(large_card_back_image, size=(int(large_card_back_image_size[0]*card_back_img_scale), int(large_card_back_image_size[1]*card_back_img_scale)))
+        self.mini_card_back_img = rescale(self.cards_gen.raster_playing_card("back"), 0.12)
+        # mini_initial_card_back_image_size = mini_initial_card_back_image.get_size()
+        # mini_card_back_img_scale = 0.12
+        # self.mini_card_back_img = scale(mini_initial_card_back_image, size=(int(mini_initial_card_back_image_size[0]*mini_card_back_img_scale), int(mini_initial_card_back_image_size[1]*mini_card_back_img_scale)))
         self.crown_img = self.g.load_asset_image("crown.png", 0.1)
         self.table_img = self.g.load_asset_image("table.png", 0.5)
         self.last_action_time = None
@@ -103,6 +103,8 @@ class Game:
         self.history_console = ScrollableList(self.g, (self.g.w - 300, self.g.h - self.card_sec_height + 5))
 
         self._update_last_action_time()
+
+        set_timer(UPDATE_GAME_STATS, 1000)
     
     def button_handler(self, name : str) -> None:
         if name == "Back":
@@ -173,6 +175,8 @@ class Game:
             [f"Session stats", f"{session_time_str}", f"{session_wins_str}", f"{session_cards_str}"],
             [f"Current game stats", f"{this_game_time_str}", "-", f"{current_game_cards_str}"]
         ]
+        if self.g.debug:
+            lines.append(["FPS", int(self.g.clock.get_fps()*10)/10, "", ""])
         statslines = tabulate(lines).splitlines()
         self.stats_surfaces = []
         self.stats_surfaces_maxwidth = 0
@@ -183,7 +187,11 @@ class Game:
         self.stats_surfaces_fontheight = lineimg.get_size()[1] # they have the same height
         
     def loop(self, events : list[Event]) -> None:
-        self.window.blit(self.table_img, (0, self.g.h-self.card_sec_height - self.table_img.get_height()))
+        if UPDATE_GAME_STATS in [e.type for e in events]:
+            self.refresh_stats_surfaces()
+        
+        if self.g.debug:
+            self.window.blit(self.table_img, (0, self.g.h-self.card_sec_height - self.table_img.get_height()))
 
         for c in self.cards:
             self.g.blit_aligned(c["img"], c["pos"])
@@ -205,7 +213,7 @@ class Game:
             align = (0, 2)
             
             self.g.blit_aligned(FONT_LG.render(f"{p['name']}", self.aa, self.g.player_colors[p["num"]]), (tpos, self.g.h-self.card_sec_height-120), align=align)
-            self.g.blit_aligned(self.card_back_img, (tpos, self.g.h-self.card_sec_height-80), align=align)
+            self.g.blit_aligned(self.mini_card_back_img, (tpos, self.g.h-self.card_sec_height-80), align=align)
             self.g.blit_aligned(FONT_LG.render(f"     x {p['cards']} / {self.session_stats[p['name']]['cards']} / {self.current_game_stats[p['name']]['cards']}", self.aa, self.g.player_colors[p["num"]]), (tpos, self.g.h-self.card_sec_height-80), align=align)
             
             self.g.blit_aligned(self.crown_img, (tpos+10, self.g.h-self.card_sec_height-40))

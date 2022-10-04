@@ -2,6 +2,7 @@ import cv2, math
 from cv2 import Mat
 import numpy as np
 from random import randint
+from ..constants import *
 
 from pygame.image import frombuffer
 from pygame.surfarray import make_surface, blit_array
@@ -11,10 +12,15 @@ from os.path import join, dirname, realpath
 pygame_surface_cache = {}
 
 class Cards:
-    def __init__(self, opencv_mode : bool = False) -> None:
+    def __init__(self, opencv_mode : bool = False, scale_factor : float = 1.0) -> None:
         self.warp_matrix = Cards._calculate_warp_matrix([-0.60, 0.0, 0], (966, 968, 4)) # generate large warp matrix for card transformation
         self.h = 362
         self.w = 242
+
+        self.scale_factor = scale_factor
+        if self.scale_factor != 1.0:
+            self.h = int(self.h * self.scale_factor)
+            self.w = int(self.w * self.scale_factor)
         
         self.set_cards = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "skip", "reverse", "draw2"]
         self.set_colors = ["red", "yellow", "green", "blue"]
@@ -51,6 +57,8 @@ class Cards:
         if rotation is None:
             if self.opencv_mode:
                 return im
+            if self.scale_factor != 1.0:
+                return rescale(Cards._to_pygame_surface(im), self.scale_factor)
             return Cards._to_pygame_surface(im)
         
         # resize image (TODO: fix this)
