@@ -36,7 +36,7 @@ class GlobalStats:
         self.saves = self.g.get_saves()
         self.buttons : list[Button] = []
 
-        self._button_names = ["Back", "Players", "By Time", "General", "Pie Chart", "Graph3"]
+        self._button_names = ["Back", "Players", "By Time", "General", "Pie Chart", "Playtime"]
         for i,b in enumerate(self._button_names):
             self.buttons.append(Button(self.g, b, (100+(i*200), 50), (200, 100), self.button_handler, FONT_LG))
         
@@ -52,9 +52,7 @@ class GlobalStats:
         self.total_games = 0
         cont = False
         for s in self.saves:
-            if cont:
-                cont = False
-                continue
+            
             for p in s["data"]["players"]:
                 if p["name"] not in players.keys():
                     players[p["name"]] = {"wins": 0, "cards": 0, "playtime": 0, "games": 0}
@@ -68,6 +66,9 @@ class GlobalStats:
                 for p2 in s["data"]["players"]:
                     self.total_games += p2["wins"]
                     players[p["name"]]["games"] += p2["wins"]
+            if cont:
+                cont = False
+                continue
             self.total_play_time += s["data"]["current_tick"]
             self.total_games += 1
         
@@ -77,13 +78,41 @@ class GlobalStats:
             if players[p]["games"] == 0:
                 removed_names.append(p)
         for r in removed_names:
+            print(f"removing {r} due to invalid stats")
             del players[r]
         
-        self.players = [{"name": p, "wins": players[p]["wins"], "cards": players[p]["cards"], "playtime": players[p]["playtime"]} for p in players.keys()]
-        self.players_total = [{"name": p, "wins": players[p]["wins"], "cards": players[p]["cards"]} for p in players.keys()]
-        self.players_by_time = [{"name": p, "wins": players[p]["wins"]/(players[p]["playtime"]/1000/60/60), "cards": players[p]["cards"]/(players[p]["playtime"]/1000/60/60)} for p in players.keys()]
-        self.players_by_games = [{"name": p, "wins": players[p]["wins"]/players[p]["games"], "cards": players[p]["cards"]/players[p]["games"]} for p in players.keys()]
-        
+        self.players = [{
+            "name": p, 
+            "wins": players[p]["wins"], 
+            "cards": players[p]["cards"], 
+            "playtime": players[p]["playtime"]
+        } for p in players.keys()]
+
+        self.players_total = [{
+            "name": p, 
+            "wins": players[p]["wins"], 
+            "cards": players[p]["cards"]
+        } for p in players.keys()]
+
+        self.players_by_time = [{
+            "name": p, 
+            "wins": players[p]["wins"]/(players[p]["playtime"]/1000/60/60), 
+            "cards": players[p]["cards"]/(players[p]["playtime"]/1000/60/60)
+        } for p in players.keys()]
+
+        self.players_by_games = [{
+            "name": p, 
+            "wins": players[p]["wins"]/players[p]["games"], 
+            "cards": players[p]["cards"]/players[p]["games"]
+        } for p in players.keys()]
+
+        self.players_with_playtime = [{
+            "name": p, 
+            "wins": players[p]["wins"], 
+            "cards": players[p]["cards"], 
+            "time": str(int(players[p]["playtime"]/1000/60/60*10)/10) + " h"
+        } for p in players.keys()]
+
         # get games
         self.games = []
         for s in self.saves:
@@ -207,16 +236,20 @@ class GlobalStats:
             self.list_left.add("Saves".ljust(padlen) + str(save_count))
             
             game_count = len(self.games)
-            self.list_left.add("Games".ljust(padlen) + str(game_count))
+            self.list_left.add("Games".ljust(padlen) + str(game_count) + " g")
             
             player_count = len(self.players)
-            self.list_left.add("Players".ljust(padlen) + str(player_count))
+            self.list_left.add("Players".ljust(padlen) + str(player_count) + " p")
             
             cards = sum([p["cards"] for p in self.players])
-            self.list_left.add("Cards per game".ljust(padlen) + str(cards/game_count))
+            
+            self.list_left.add("Cards".ljust(padlen) + f"{cards} c")
+
+            self.list_left.add("Cards per game".ljust(padlen) + f"{(cards/game_count):.2f} c/g")
+            
             
             #cards = sum([p["cards"] for p in self.players])
-            self.list_left.add("Total play time".ljust(padlen) + str(self.total_play_time/1000/60/60) + " hours")
+            self.list_left.add("Total play time".ljust(padlen) + f"{(self.total_play_time/1000/60/60):.2f} h")
             #self.list_left.add("Cards per game".ljust(padlen) + str(cards/game_count))
             
             #self.list_left.add("Total games".ljust(padlen) + str(self.total_games) + " hours")
@@ -224,7 +257,7 @@ class GlobalStats:
             all_players_total_time = 0
             for p in self.players:
                 all_players_total_time += p["playtime"]
-            self.list_left.add("Total person-hours wasted".ljust(padlen) + str(int(all_players_total_time/1000/60/60)) + " hours")
+            self.list_left.add("Total person-hours wasted".ljust(padlen) + f"{(all_players_total_time/1000/60/60):.2f} h")
             
         elif id == 3:
             temp_players = sorted(self.players, key=lambda x: x["cards"], reverse=True)
@@ -263,7 +296,19 @@ class GlobalStats:
             
             self.image = GlobalStats.fig2img(fig)
             plt.close(fig)
-    
+        
+        elif id == 4:
+            self.display_mode = "list"
+            self.list_left = ScrollableList(self.g, (100, 100), font=FONT_MONOSP_LARGE, direction="bottomlast")
+            padlen = 35
+            
+            tableheader = {"name": "Name", "wins": "Wins", "cards": "Cards", "time": "Time"}
+
+            players_by_cards = tabulate(sorted(self.players_with_playtime, key=lambda x: x["cards"], reverse=True), headers=tableheader, showindex=range(1, len(self.players_by_time)+1)).split("\n")
+            self.list_left.add("Players by cards/h:")
+            for line in players_by_cards:
+                self.list_left.add(line)
+
     @staticmethod
     def fig2img(fig : Figure) -> Surface:
         """Convert a Matplotlib figure to a PIL Image and and then to a pygame surface return it"""

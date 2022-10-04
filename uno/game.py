@@ -116,27 +116,27 @@ class Game:
             return
 
         elif name == "Undo":
-            success = self.g.undo()
-            if success: 
+            name, action, value = self.g.undo()
+            if name: 
                 # if undo was successfull, update history console, session_stats and current_game_stats
                 self.history_console.pop()
                 
-                if success[1] == "draw":
+                if action == "draw":
                     key = "cards"
-                    num = success[2]
-                elif success[1] == "win":
+                    num = value
+                elif action == "win":
                     key = "wins"
                     num = 1
                 else:
                     return
                 
-                self.current_game_stats[success[0]][key] -= num
-                if self.current_game_stats[success[0]][key] < 0:
-                    self.current_game_stats[success[0]][key] = 0
+                self.current_game_stats[name][key] -= num
+                if self.current_game_stats[name][key] < 0:
+                    self.current_game_stats[name][key] = 0
                 
-                self.session_stats[success[0]][key] -= num
-                if self.session_stats[success[0]][key] < 0:
-                    self.session_stats[success[0]][key] = 0
+                self.session_stats[name][key] -= num
+                if self.session_stats[name][key] < 0:
+                    self.session_stats[name][key] = 0
             return
 
         elif name == "Pause":

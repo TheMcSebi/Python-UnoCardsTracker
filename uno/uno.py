@@ -155,17 +155,20 @@ class Uno:
         
         if sum_actions > 1:
             if last_action == "win":
+                change = last_player["wins"] - last_value
                 last_player["wins"] = last_value
             elif last_action == "draw":
+                change = last_player["cards"] - last_value
                 last_player["cards"] = last_value
         elif sum_actions == 1:
             if last_action == "draw":
+                change = last_player["cards"]
                 last_player["cards"] = 0
             elif last_action == "win":
+                change = last_player["wins"]
                 last_player["wins"] = 0
         last_player["history"].pop(last_index)
-        return (last_player["name"], last_action, last_value)
-            
+        return (last_player["name"], last_action, change)
     
     def setstate(self, num : int) -> None:
         """
@@ -384,6 +387,15 @@ class Uno:
 
         p["history"].append({"action": action, "value": value, "time": self.get_game_time(), "timestamp": int(time())})
         self.save()
+    
+    def get_player_by_name(self, name : str) -> dict:
+        """
+        Returns the player dictionary by name
+        """
+        for p in self.players:
+            if p["name"] == name:
+                return p
+        return None
     
     def blit_aligned(self, src : Surface, dest : tuple, target : Surface = None, align : tuple = (2, 2)) -> None:
         (x, y) = dest
