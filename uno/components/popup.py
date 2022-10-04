@@ -25,15 +25,15 @@ class Popup:
         self.rect_dims = (self.g.w//2 - self.g.w//4, self.g.h//2 - self.g.h//4, self.g.w//2, self.g.h//2)
         self.is_multiline = is_multiline
         if is_multiline:
-            self.font = FONT_L
+            self.font = FONT_MD
         else:
-            self.font = FONT_LG
+            self.font = FONT_L
         
         bsize = (150, 50)
         for i,b in enumerate(buttons):
             bpos = (
                 int(self.rect_dims[2] + i*bsize[0]*1.2 - ((len(buttons)-1)*bsize[0]*1.2)/2), 
-                int(self.rect_dims[3] - self.rect_dims[3]//2 + (self.rect_dims[3]//4)*3)
+                int(self.rect_dims[3] - self.rect_dims[3]//2 + (self.rect_dims[3]//4)*3.5)
             )
             #bpos = (self.rect_dims[2], self.rect_dims[3] - self.rect_dims[3]//2 + (self.rect_dims[3]//4)*2)
             self.buttons.append(Button(self.g, b, bpos, bsize, button_handler, FONT_MD, border_size=2))

@@ -60,7 +60,9 @@ class Button:
         if window is None:
             window = self.g.window
         
-        rect(window, WHITE, (x-w//2, y-h//2, w, h), self.border_size)
+
+        rect(window, color=BLACK, rect=(x-w//2, y-h//2, w, h), width=100)
+        rect(window, color=WHITE, rect=(x-w//2, y-h//2, w, h), width=self.border_size, border_radius=10)
 
         if self.img:
             self.g.blit_aligned(self.img, (x, y), window)

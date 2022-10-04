@@ -36,7 +36,7 @@ class GlobalStats:
         self.saves = self.g.get_saves()
         self.buttons : list[Button] = []
 
-        self._button_names = ["Back", "Players", "General", "Pie Chart", "Graph3"]
+        self._button_names = ["Back", "Players", "By Time", "General", "Pie Chart", "Graph3"]
         for i,b in enumerate(self._button_names):
             self.buttons.append(Button(self.g, b, (100+(i*200), 50), (200, 100), self.button_handler, FONT_LG))
         
@@ -48,16 +48,41 @@ class GlobalStats:
         
         # get player data
         players = {}
+        self.total_play_time = 0
+        self.total_games = 0
+        cont = False
         for s in self.saves:
+            if cont:
+                cont = False
+                continue
             for p in s["data"]["players"]:
                 if p["name"] not in players.keys():
-                    players[p["name"]] = {"wins": 0, "cards": 0}
-                if "wins" in p.keys():
-                    players[p["name"]]["wins"] += p["wins"]
-                if "cards" in p.keys():
-                    players[p["name"]]["cards"] += p["cards"]
+                    players[p["name"]] = {"wins": 0, "cards": 0, "playtime": 0, "games": 0}
+                if not "wins" in p.keys():
+                    cont = True
+                    break
+                players[p["name"]]["wins"] += p["wins"]
+                #if "cards" in p.keys():
+                players[p["name"]]["cards"] += p["cards"]
+                players[p["name"]]["playtime"] += s["data"]["current_tick"]
+                for p2 in s["data"]["players"]:
+                    self.total_games += p2["wins"]
+                    players[p["name"]]["games"] += p2["wins"]
+            self.total_play_time += s["data"]["current_tick"]
+            self.total_games += 1
         
-        self.players = [{"name": p, "wins": players[p]["wins"], "cards": players[p]["cards"]} for p in players.keys()]
+        # clear 0-game players
+        removed_names = []
+        for p in players.keys():
+            if players[p]["games"] == 0:
+                removed_names.append(p)
+        for r in removed_names:
+            del players[r]
+        
+        self.players = [{"name": p, "wins": players[p]["wins"], "cards": players[p]["cards"], "playtime": players[p]["playtime"]} for p in players.keys()]
+        self.players_total = [{"name": p, "wins": players[p]["wins"], "cards": players[p]["cards"]} for p in players.keys()]
+        self.players_by_time = [{"name": p, "wins": players[p]["wins"]/(players[p]["playtime"]/1000/60/60), "cards": players[p]["cards"]/(players[p]["playtime"]/1000/60/60)} for p in players.keys()]
+        self.players_by_games = [{"name": p, "wins": players[p]["wins"]/players[p]["games"], "cards": players[p]["cards"]/players[p]["games"]} for p in players.keys()]
         
         # get games
         self.games = []
@@ -68,9 +93,10 @@ class GlobalStats:
                     for h in p["history"]:
                         history.append(h)
             if len(history) == 0:
+                print("missing history " + s["filename"])
                 continue
             if isinstance(history[0], list):
-                print("wrong")
+                print("wrong format " + s["filename"])
                 continue
 
             history = sorted(history, key=lambda x: x["time"])
@@ -121,9 +147,9 @@ class GlobalStats:
                 return True
         
         elif self.display_mode == "lists":
-            if self.list_left.mouse_event(event):
-                return True
             if self.list_right.mouse_event(event):
+                return True
+            if self.list_left.mouse_event(event):
                 return True
         
         return False
@@ -146,20 +172,36 @@ class GlobalStats:
             self.list_right = ScrollableList(self.g, (self.g.w//2 + 50, 50), font=FONT_MONOSP, direction="bottomlast")
             tableheader = {"name": "Name", "wins": "Wins", "cards": "Cards"}
 
-            players_by_cards = tabulate(sorted(self.players, key=lambda x: x["cards"], reverse=True), headers=tableheader, showindex=range(1, len(self.players)+1)).split("\n")
+            players_by_cards = tabulate(sorted(self.players_total, key=lambda x: x["cards"], reverse=True), headers=tableheader, showindex=range(1, len(self.players_total)+1)).split("\n")
             self.list_left.add("Players by cards:")
             for line in players_by_cards:
                 self.list_left.add(line)
             
-            players_by_wins = tabulate(sorted(self.players, key=lambda x: x["wins"], reverse=True), headers=tableheader, showindex=range(1, len(self.players)+1)).split("\n")
+            players_by_wins = tabulate(sorted(self.players_total, key=lambda x: x["wins"], reverse=True), headers=tableheader, showindex=range(1, len(self.players_total)+1)).split("\n")
             self.list_right.add("Players by wins:")
             for line in players_by_wins:
                 #line = f"{i}. {p['name']}: {p['wins']} wins, {p['cards']} cards"
                 self.list_right.add(line)
-        elif id == 1:
+        if id == 1:
+            self.display_mode = "lists"
+            self.list_left = ScrollableList(self.g, (50, 50), font=FONT_MONOSP, direction="bottomlast")
+            self.list_right = ScrollableList(self.g, (self.g.w//2 + 50, 50), font=FONT_MONOSP, direction="bottomlast")
+            tableheader = {"name": "Name", "wins": "Wins", "cards": "Cards"}
+
+            players_by_cards = tabulate(sorted(self.players_by_time, key=lambda x: x["cards"], reverse=True), headers=tableheader, showindex=range(1, len(self.players_by_time)+1)).split("\n")
+            self.list_left.add("Players by cards/h:")
+            for line in players_by_cards:
+                self.list_left.add(line)
+            
+            players_by_wins = tabulate(sorted(self.players_by_time, key=lambda x: x["wins"], reverse=True), headers=tableheader, showindex=range(1, len(self.players_by_time)+1)).split("\n")
+            self.list_right.add("Players by wins/h:")
+            for line in players_by_wins:
+                #line = f"{i}. {p['name']}: {p['wins']} wins, {p['cards']} cards"
+                self.list_right.add(line)
+        elif id == 2:
             self.display_mode = "list"
             self.list_left = ScrollableList(self.g, (100, 100), font=FONT_MONOSP_LARGE, direction="bottomlast")
-            padlen = 25
+            padlen = 35
             
             save_count = len(self.saves)
             self.list_left.add("Saves".ljust(padlen) + str(save_count))
@@ -171,9 +213,20 @@ class GlobalStats:
             self.list_left.add("Players".ljust(padlen) + str(player_count))
             
             cards = sum([p["cards"] for p in self.players])
-            self.list_left.add("Cards per game".ljust(padlen) + str(int(cards/game_count)))
+            self.list_left.add("Cards per game".ljust(padlen) + str(cards/game_count))
             
-        elif id == 2:
+            #cards = sum([p["cards"] for p in self.players])
+            self.list_left.add("Total play time".ljust(padlen) + str(self.total_play_time/1000/60/60) + " hours")
+            #self.list_left.add("Cards per game".ljust(padlen) + str(cards/game_count))
+            
+            #self.list_left.add("Total games".ljust(padlen) + str(self.total_games) + " hours")
+
+            all_players_total_time = 0
+            for p in self.players:
+                all_players_total_time += p["playtime"]
+            self.list_left.add("Total person-hours wasted".ljust(padlen) + str(int(all_players_total_time/1000/60/60)) + " hours")
+            
+        elif id == 3:
             temp_players = sorted(self.players, key=lambda x: x["cards"], reverse=True)
             self.display_mode = "image"
             plt.style.use('_mpl-gallery-nogrid')

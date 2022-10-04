@@ -1,6 +1,7 @@
 from __future__ import annotations
 from datetime import timedelta
 from random import randint
+from tabulate import tabulate
 
 from os.path import join, dirname, realpath
 
@@ -8,6 +9,7 @@ from pygame.locals import *
 from pygame.event import Event
 from pygame.draw import line
 from pygame.time import Clock, get_ticks
+from pygame.transform import scale
 
 from .constants import *
 from .components.button import Button
@@ -37,7 +39,8 @@ class Game:
             return
         
         self.session_start_time = get_ticks()
-
+        self.game_start_time = self.session_start_time
+        
         self.card_padding = 30
         self.aa = True
         self.dragging_card = {}
@@ -48,8 +51,12 @@ class Game:
         self.popup = None
         self.particleexplosions = []
         self.star_image = self.g.load_asset_image("star.png", 0.2)
+        large_card_back_image = self.cards_gen.raster_playing_card("back")
+        large_card_back_image_size = large_card_back_image.get_size()
+        card_back_img_scale = 0.12
+        self.card_back_img = scale(large_card_back_image, size=(int(large_card_back_image_size[0]*card_back_img_scale), int(large_card_back_image_size[1]*card_back_img_scale)))
+        self.crown_img = self.g.load_asset_image("crown.png", 0.1)
         self.last_action_time = None
-        self._update_last_action_time()
         self.popup_delay = 300_000 # 5 min
         
         #self.history_console_length = 16
@@ -85,7 +92,7 @@ class Game:
             self.card_stacks.append(cstack)
 
             # regarding win-buttons
-            self.buttons.append(Button(self.g, f"f::crown.png::0.35::win::{p['num']}", self._get_win_button_pos(p["num"]), None, self.button_handler, FONT_LG, border_size=-1))
+            self.buttons.append(Button(self.g, f"f::crown.png::0.30::win::{p['num']}", self._get_win_button_pos(p["num"]), None, self.button_handler, FONT_LG, border_size=-1))
 
             # add session stats
             self.session_stats[p["name"]] = {"wins": 0, "cards": 0}
@@ -93,6 +100,8 @@ class Game:
         
         # Instanciate the history console 
         self.history_console = ScrollableList(self.g, (self.g.w - 300, self.g.h - self.card_sec_height + 5))
+
+        self._update_last_action_time()
     
     def button_handler(self, name : str) -> None:
         if name == "Back":
@@ -111,16 +120,18 @@ class Game:
                 
                 if success[1] == "draw":
                     key = "cards"
+                    num = success[2]
                 elif success[1] == "win":
                     key = "wins"
+                    num = 1
                 else:
                     return
                 
-                self.current_game_stats[success[0]][key] -= success[2]
+                self.current_game_stats[success[0]][key] -= num
                 if self.current_game_stats[success[0]][key] < 0:
                     self.current_game_stats[success[0]][key] = 0
                 
-                self.session_stats[success[0]][key] -= success[2]
+                self.session_stats[success[0]][key] -= num
                 if self.session_stats[success[0]][key] < 0:
                     self.session_stats[success[0]][key] = 0
             return
@@ -142,6 +153,32 @@ class Game:
                         self.particleexplosions.append(ParticleExplosion(self.g, self.star_image, self._get_win_button_pos(p["num"]), 240))
             return
         print(f"Unknown button: {name}")
+    
+    def refresh_stats_surfaces(self) -> None:
+        game_time_str = timedelta(seconds=self.g.get_game_time()//1000)
+        game_wins_str = sum([p["wins"] for p in self.g.players])
+        game_cards_str = sum([p["cards"] for p in self.g.players])
+
+        session_time_str = timedelta(seconds=(get_ticks()-self.session_start_time)//1000)
+        session_wins_str = sum([self.session_stats[p["name"]]["wins"] for p in self.g.players])
+        session_cards_str = sum([self.session_stats[p["name"]]["cards"] for p in self.g.players])
+
+        this_game_time_str = timedelta(seconds=(get_ticks()-self.game_start_time)//1000)
+        #current_game_wins_str = sum([self.current_game_stats[p["name"]]["wins"] for p in self.g.players])
+        current_game_cards_str = sum([self.current_game_stats[p["name"]]["cards"] for p in self.g.players])
+        lines = [
+            ["", "Time", "Wins", "Cards"],
+            [f"Game stats", f"{game_time_str}", f"{game_wins_str}", f"{game_cards_str}"],
+            [f"Session stats", f"{session_time_str}", f"{session_wins_str}", f"{session_cards_str}"],
+            [f"Current game stats", f"{this_game_time_str}", "-", f"{current_game_cards_str}"]
+        ]
+        statslines = tabulate(lines).splitlines()
+        self.stats_surfaces = []
+        self.stats_surfaces_maxwidth = 0
+        for ls in statslines[1:-1]:
+            lineimg = FONT_MONOSP_SM.render(ls, self.aa, WHITE)
+            self.stats_surfaces_maxwidth = max(lineimg.get_width(), self.stats_surfaces_maxwidth)
+            self.stats_surfaces.append(lineimg)
         
     def loop(self, events : list[Event]) -> None:
         for c in self.cards:
@@ -164,25 +201,29 @@ class Game:
             align = (0, 2)
             
             self.g.blit_aligned(FONT_LG.render(f"{p['name']}", self.aa, self.g.player_colors[p["num"]]), (tpos, self.g.h-self.card_sec_height-120), align=align)
+            self.g.blit_aligned(self.card_back_img, (tpos, self.g.h-self.card_sec_height-80), align=align)
+            self.g.blit_aligned(FONT_LG.render(f"     x {p['cards']} / {self.session_stats[p['name']]['cards']} / {self.current_game_stats[p['name']]['cards']}", self.aa, self.g.player_colors[p["num"]]), (tpos, self.g.h-self.card_sec_height-80), align=align)
+            #self.g.blit_aligned(FONT_MD.render(f"(s: , g: ", self.aa, self.g.player_colors[p["num"]]), (session_stats_xpos, self.g.h-self.card_sec_height-80), align=align)
             
-            self.g.blit_aligned(FONT_LG.render(f"{p['cards']} cards", self.aa, self.g.player_colors[p["num"]]), (tpos, self.g.h-self.card_sec_height-80), align=align)
-            self.g.blit_aligned(FONT_MD.render(f"(s: {self.session_stats[p['name']]['cards']}, g: {self.current_game_stats[p['name']]['cards']})", self.aa, self.g.player_colors[p["num"]]), (session_stats_xpos, self.g.h-self.card_sec_height-80), align=align)
-            
-            self.g.blit_aligned(FONT_LG.render(f"{p['wins']} wins", self.aa, self.g.player_colors[p["num"]]), (tpos, self.g.h-self.card_sec_height-40), align=align)
-            self.g.blit_aligned(FONT_MD.render(f"(s: {self.session_stats[p['name']]['wins']})", self.aa, self.g.player_colors[p["num"]]), (session_stats_xpos, self.g.h-self.card_sec_height-40), align=align)
+            self.g.blit_aligned(self.crown_img, (tpos+10, self.g.h-self.card_sec_height-40))
+            self.g.blit_aligned(FONT_LG.render(f"     x {p['wins']} / {self.session_stats[p['name']]['wins']}", self.aa, self.g.player_colors[p["num"]]), (tpos, self.g.h-self.card_sec_height-40), align=align)
+            #self.g.blit_aligned(FONT_MD.render(f"(s: )", self.aa, self.g.player_colors[p["num"]]), (session_stats_xpos, self.g.h-self.card_sec_height-40), align=align)
         
         # hlines
         line(self.window, WHITE, (0, self.g.h - self.card_sec_height), (self.g.w, self.g.h - self.card_sec_height), 5)
         line(self.window, WHITE, (0, self.g.h - self.card_sec_height - 155), (self.g.w, self.g.h - self.card_sec_height - 155), 5)
 
-        # game timer and session timer
-        game_time = FONT_MD.render("Game time: " + str(timedelta(seconds=self.g.get_game_time()//1000)), self.aa, WHITE)
-        session_time = FONT_MD.render("Session time: " + str(timedelta(seconds=(get_ticks()-self.session_start_time)//1000)), self.aa, WHITE)
-        fontheight = session_time.get_size()[1] # they have the same height
+        # game stats in the top right corner
+        #stats_cols_legend = FONT_MD.render(f"            Time   /   Wins   /   Cards", self.aa, WHITE)
 
-        self.window.blit(game_time, (self.g.w - (game_time.get_size()[0] + 5), 5))
-        self.window.blit(session_time, (self.g.w - (session_time.get_size()[0] + 5), 10 + fontheight))
-        
+        for i, img in enumerate(self.stats_surfaces):
+            fontheight = img.get_size()[1] # they have the same height
+            self.window.blit(img, (self.g.w - self.stats_surfaces_maxwidth - 5, 5*(i+1) + i*fontheight))
+        #self.window.blit(game_stats, (self.g.w - (game_stats.get_size()[0] + 5), 15 + fontheight))
+        #self.window.blit(session_stats, (self.g.w - (session_stats.get_size()[0] + 5), 25 + fontheight*2))
+        #self.window.blit(this_game_stats, (self.g.w - (this_game_stats.get_size()[0] + 5), 35 + fontheight*3))
+
+        # history console
         self.history_console.draw()
 
         # menu buttons
@@ -219,9 +260,9 @@ class Game:
             self.g.setstate(0)
     
     def help_popup_button_handler(self, name : str) -> None:
+        self._update_last_action_time()
         if name == "Ok":
             self.popup = None
-            self._update_last_action_time()
         
         elif name == "No":
             self.g.setstate(0)
@@ -290,6 +331,7 @@ class Game:
         Resets the delay that triggers the pause popup
         """
         self.last_action_time = get_ticks()
+        self.refresh_stats_surfaces()
     
     def _get_player_clicked(self, click_pos : tuple) -> dict:
         if click_pos[1] > self.g.h-self.card_sec_height:
@@ -325,6 +367,7 @@ class Game:
             p["wins"] += value
             self.history_console.add(f"{p['name']} wins")
             self.session_stats[p["name"]]["wins"] += value
+            self.game_start_time = get_ticks()
 
             # on win, reset current_game_stats counter
             self.current_game_stats = {}
@@ -332,6 +375,7 @@ class Game:
                 self.current_game_stats[pl["name"]] = {"cards": 0, "wins": 0}
         
         self.g.playerdata_changed(p, action)
+        self._update_last_action_time()
     
     def _display_pause_popup(self) -> None:
         self.popup = Popup(self.g, "Hey!", "Are you still playing?", ["Yes", "No"], self.pause_popup_button_handler)
