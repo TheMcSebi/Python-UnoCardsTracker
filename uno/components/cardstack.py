@@ -1,6 +1,6 @@
 from __future__ import annotations
 from pygame.event import Event
-from pygame import Surface
+from pygame import Surface, SRCALPHA
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -24,7 +24,9 @@ class CardStack:
         """
         Resets the surface and stack size to its default value
         """
-        self.stack_img = Surface(self.size)
+        image = Surface(self.size, SRCALPHA, 32)
+        image = image.convert_alpha()
+        self.stack_img = image
         self.stack_size = 0
     
     def setup(self) -> None:

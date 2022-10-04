@@ -24,12 +24,13 @@ class Load:
     
     def setup(self) -> None:
         self.saves = self.g.get_saves_info()
-        self.bw = self.g.w - self.g.w//3
+        self.bw = self.g.w - self.g.w//8
         self.bh = self.g.h//8
-
-        self.buttons = [Button(self.g, "Back", (100, 50), (200, 100), self.button_handler, FONT_LG)]
+        
+        self.buttons = []
         for i, s in enumerate(self.saves):
             self.buttons.append(Button(self.g, s["filename"], (self.g.w//2, self.g.h//12 + i*self.bh), (self.bw, self.bh), self.button_handler, FONT_LG, ", ".join(s["players"]), FONT_MD))
+        self.buttons.append(Button(self.g, "Back", (100, 50), (200, 100), self.button_handler, FONT_LG))
     
     def button_handler(self, name : str) -> None:
         if name == "Back":

@@ -7,7 +7,7 @@ from os.path import join, dirname, realpath
 
 from pygame.locals import *
 from pygame.event import Event
-from pygame.draw import line
+from pygame.draw import line, rect
 from pygame.time import Clock, get_ticks
 from pygame.transform import scale
 
@@ -46,7 +46,7 @@ class Game:
         self.dragging_card = {}
         self.cards_gen = Cards()
         self.cards = []
-        self.card_stacks = []
+        self.card_stacks : list[CardStack]= []
         self.card_pos = (0, 0)
         self.popup = None
         self.particleexplosions = []
@@ -56,6 +56,7 @@ class Game:
         card_back_img_scale = 0.12
         self.card_back_img = scale(large_card_back_image, size=(int(large_card_back_image_size[0]*card_back_img_scale), int(large_card_back_image_size[1]*card_back_img_scale)))
         self.crown_img = self.g.load_asset_image("crown.png", 0.1)
+        self.table_img = self.g.load_asset_image("table.png", 0.5)
         self.last_action_time = None
         self.popup_delay = 300_000 # 5 min
         
@@ -179,8 +180,11 @@ class Game:
             lineimg = FONT_MONOSP_SM.render(ls, self.aa, WHITE)
             self.stats_surfaces_maxwidth = max(lineimg.get_width(), self.stats_surfaces_maxwidth)
             self.stats_surfaces.append(lineimg)
+        self.stats_surfaces_fontheight = lineimg.get_size()[1] # they have the same height
         
     def loop(self, events : list[Event]) -> None:
+        self.window.blit(self.table_img, (0, self.g.h-self.card_sec_height - self.table_img.get_height()))
+
         for c in self.cards:
             self.g.blit_aligned(c["img"], c["pos"])
         
@@ -203,26 +207,19 @@ class Game:
             self.g.blit_aligned(FONT_LG.render(f"{p['name']}", self.aa, self.g.player_colors[p["num"]]), (tpos, self.g.h-self.card_sec_height-120), align=align)
             self.g.blit_aligned(self.card_back_img, (tpos, self.g.h-self.card_sec_height-80), align=align)
             self.g.blit_aligned(FONT_LG.render(f"     x {p['cards']} / {self.session_stats[p['name']]['cards']} / {self.current_game_stats[p['name']]['cards']}", self.aa, self.g.player_colors[p["num"]]), (tpos, self.g.h-self.card_sec_height-80), align=align)
-            #self.g.blit_aligned(FONT_MD.render(f"(s: , g: ", self.aa, self.g.player_colors[p["num"]]), (session_stats_xpos, self.g.h-self.card_sec_height-80), align=align)
             
             self.g.blit_aligned(self.crown_img, (tpos+10, self.g.h-self.card_sec_height-40))
             self.g.blit_aligned(FONT_LG.render(f"     x {p['wins']} / {self.session_stats[p['name']]['wins']}", self.aa, self.g.player_colors[p["num"]]), (tpos, self.g.h-self.card_sec_height-40), align=align)
-            #self.g.blit_aligned(FONT_MD.render(f"(s: )", self.aa, self.g.player_colors[p["num"]]), (session_stats_xpos, self.g.h-self.card_sec_height-40), align=align)
-        
+            
         # hlines
         line(self.window, WHITE, (0, self.g.h - self.card_sec_height), (self.g.w, self.g.h - self.card_sec_height), 5)
         line(self.window, WHITE, (0, self.g.h - self.card_sec_height - 155), (self.g.w, self.g.h - self.card_sec_height - 155), 5)
 
         # game stats in the top right corner
-        #stats_cols_legend = FONT_MD.render(f"            Time   /   Wins   /   Cards", self.aa, WHITE)
-
+        rect(self.window, BLACK, (self.g.w - self.stats_surfaces_maxwidth - 10, 5, self.g.w - 5, 5*(3+1) + 4*self.stats_surfaces_fontheight), border_radius=10)
         for i, img in enumerate(self.stats_surfaces):
-            fontheight = img.get_size()[1] # they have the same height
-            self.window.blit(img, (self.g.w - self.stats_surfaces_maxwidth - 5, 5*(i+1) + i*fontheight))
-        #self.window.blit(game_stats, (self.g.w - (game_stats.get_size()[0] + 5), 15 + fontheight))
-        #self.window.blit(session_stats, (self.g.w - (session_stats.get_size()[0] + 5), 25 + fontheight*2))
-        #self.window.blit(this_game_stats, (self.g.w - (this_game_stats.get_size()[0] + 5), 35 + fontheight*3))
-
+            self.window.blit(img, (self.g.w - self.stats_surfaces_maxwidth - 5, 5*(i+1) + i*self.stats_surfaces_fontheight))
+        
         # history console
         self.history_console.draw()
 
@@ -243,6 +240,7 @@ class Game:
         
         elif self.last_action_time + self.popup_delay < get_ticks():
             self._display_pause_popup() # this enables the popup
+        
     
     def keydown(self, k : int, kmods : int) -> bool:
         if k == K_q or k == K_ESCAPE:
